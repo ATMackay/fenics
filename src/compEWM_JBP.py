@@ -107,10 +107,31 @@ z4 = list()
 y5 = list()
 zx5 = list()
 z5 = list()
+
 while j < loopend:
     j+=1
     t=0.0
 
+    # HOLOLOW CYLINDER MESH
+
+    # Parameters
+    r_a = 1.0 #Journal Radius
+    r_b = 2.0#1.25 #Bearing Radius
+    x_1 = -0.80 #-0.2
+    y_1 = 0.0
+    x_2 = 0.0
+    y_2 = 0.0
+    mesh_resolution = 35
+    mesh = JBP_mesh(mesh_resolution, x_1, x_2, y_1, y_2, r_a, r_b)
+
+    # Generate internal mesh for hollow cylinder
+    c3 = Circle(Point(x_1,y_1), 0.99*r_a, 256)  # Empty hole in mesh
+    mesh_resolution = 35
+    gdim = mesh.geometry().dim() # Mesh Geometry
+    meshc= generate_mesh(c3, 15)
+
+    # Timestepping
+    dt = 10*mesh.hmin()**2
 
     # Reset Mesh Dependent Functions
     h = CellDiameter(mesh)
@@ -176,8 +197,6 @@ while j < loopend:
                     [Rt_vec[1], Rt_vec[2]]])        # DEVSS Space
 
 
-
-
     #Solution Functions
     rho0 = Function(Q)
     rho12 = Function(Q)
@@ -193,6 +212,7 @@ while j < loopend:
     w12 = Function(W)
     ws = Function(W)
     w1 = Function(W)
+    uu0 = Function(V)
     (u0, D0_vec) = w0.split()
     (u12, D12_vec) = w12.split()
     (us, Ds_vec) = ws.split()
@@ -212,21 +232,32 @@ while j < loopend:
     tau1 = as_matrix([[tau1_vec[0], tau1_vec[1]],
                       [tau1_vec[1], tau1_vec[2]]])
 
+    #Jounral Boundary                                                                              
+    class Omega0(SubDomain):
+          def inside(self, x, on_boundary):
+              return True if (x[0]-x_1)**2+(x[1]-y_1)**2 < (0.9*r_a**2+0.1*r_b**2) and on_boundary  else False  # and 
+    omega0= Omega0()
+
+    # Bearing Boundary
+    class Omega1(SubDomain):
+          def inside(self, x, on_boundary):
+              return True if (x[0]-x_2)**2 + (x[1]-y_2)**2 > (0.1*r_a**2+0.9*r_b**2) and on_boundary else False  #
+    omega1= Omega1()
+
+    # Subdomian for the pressure boundary condition at (r_a,0)
+    class POmega(SubDomain):
+          def inside(self, x, on_boundary):
+              return True if x[0] < 0.5*(r_a+r_b) and x[0] > 0 and x[1] < r_a*0.02 and x[1] > -r_a*0.05 and on_boundary else False 
+    POmega=POmega()
 
     # Create mesh functions over the cell facets (Verify Boundary Classes)
     sub_domains = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
     sub_domains.set_all(0)
     omega0.mark(sub_domains, 2)
     omega1.mark(sub_domains, 3)
-    #POmega.mark(sub_domains, 4)
-
-
-    #plot(sub_domains, interactive=False, scalarbar = False)
-    #quit()
 
     #Define Boundary Parts
     boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
-    #boundary_parts = FacetFunction("size_t", mesh)
     omega0.mark(boundary_parts,0)
     omega1.mark(boundary_parts,1)
     ds = Measure("ds")[boundary_parts]
@@ -284,21 +315,24 @@ while j < loopend:
        We = 1.0
        betav = 0.5
        Tf = 1.5*(1 + 2*err_count*0.25)
-       dt = 10*mesh.hmin()**2 
+       dt = mesh.hmin()**2 
        th = 0.0
 
     Rey = Re*conv
 
     # Print Parameters of flow simulation
     t = 0.0                  #Time
-    e=6
 
-    if jj==0:
+
+    if jj == 0:
         print('############# ADAPTIVE MESH REFINEMENT STAGE ################')   
         print( 'Number of Refinements:', err_count )
     print('############# Journal Bearing Length Ratios ############')
-    print('Eccentricity (m):' ,ec)
-    print('Radius DIfference (m):',c)
+    ec = np.sqrt((x_2 - x_1)**2 + (y_2 - y_1)**2)
+    c = r_b - r_a
+    ecc = ec/c
+    print('Eccentricity (m):' , )
+    print('Radius DIfference (m):', r_b - r_a)
     print('Eccentricity Ratio:',ecc)
 
     print('############# TIME SCALE ############')
@@ -310,9 +344,9 @@ while j < loopend:
     print( 'Characteristic Length (m):', r_b-r_a)
     print( 'Characteristic Velocity (m/s):', w_j*r_a)
     print( 'Speed of sound (m/s):', c0)
-    print( 'Cylinder Speed (t=0) (m/s):', w_j*r_a*(1.0+np.tanh(e*t-3.0)))
+    print( 'Cylinder Speed (t=0) (m/s):', w_j*r_a*(1.0+np.tanh(8.0*t-4.0)))
     print( 'Mach Number', Ma)
-    print( 'Nondimensionalised Cylinder Speed (t=0) (m/s):', (1.0+np.tanh(e*t-3.0)))
+    print( 'Nondimensionalised Cylinder Speed (t=0) (m/s):', (1.0+np.tanh(8.0*t-4.0)))
     print( 'Reynolds Number:', Re)
     print('Weissenberg Number:', We)
     print( 'Viscosity Ratio:', betav)
@@ -341,7 +375,6 @@ while j < loopend:
 
     print( 'Loop:', jjj, '-', j)
 
-    #quit()
 
     # Initial Density Field
     rho_initial = Expression('1.0', degree=1)
@@ -380,9 +413,9 @@ while j < loopend:
     # DEVSS Stabilisation
 
     
-    DEVSSl_u12 = 2*(1-betav)*inner(Dcomp(u),Dincomp(v))*dx    
+    DEVSSl_u12 = 2*(1.-betav)*inner(Dcomp(u),Dincomp(v))*dx    
     DEVSSr_u12 = 2*inner(D0,Dincomp(v))*dx   
-    DEVSSl_u1 = 2*(1-betav)*inner(Dcomp(u),Dincomp(v))*dx    
+    DEVSSl_u1 = 2*(1.-betav)*inner(Dcomp(u),Dincomp(v))*dx    
     DEVSSr_u1 = 2*inner(D12,Dincomp(v))*dx 
 
     DEVSSl_T1 = (1.-Di)*inner(grad(thetal), grad(r))*dx
@@ -617,7 +650,7 @@ while j < loopend:
 
 
         #Temperature Full Step
-        gamdot = inner(sigmacon(u0, p0, tau0),grad(u0))
+        gamdot = inner(sigmacon(u0, p0, tau0, betav, We),grad(u0))
         lhs_temp1 = (1.0/dt)*rho1*thetal + rho1*dot(u1,grad(thetal))
         difflhs_temp1 = Di*grad(thetal)
         rhs_temp1 = (1.0/dt)*rho1*thetar + rho1*dot(u1,grad(thetar)) + (1.0/dt)*rho1*theta0 + Vh*phi_ewm(tau1, theta1, k_ewm, B)*gamdot
@@ -666,11 +699,11 @@ while j < loopend:
         E_k=assemble(0.5*rho1*dot(u1,u1)*dx)
         E_e=assemble((tau1_vec[0]+tau1_vec[2]-2.0)*dx)
 
-        sigma0 = dot(sigmacon(u1, p1, tau1), tang)
-        sigma1 = dot(sigmacon(u1, p1, tau1), tang)
+        sigma0 = dot(sigmacon(u1, p1, tau1, betav, We), tang)
+        sigma1 = dot(sigmacon(u1, p1, tau1, betav, We), tang)
 
-        omegaf0 = dot(sigmacon(u1, p1, tau1), n)  #Nomral component of the stress 
-        omegaf1 = dot(sigmacon(u1, p1, tau1), n)
+        omegaf0 = dot(sigmacon(u1, p1, tau1, betav, We), n)  #Nomral component of the stress 
+        omegaf1 = dot(sigmacon(u1, p1, tau1, betav, We), n)
 
 
         innerforcex = inner(Constant((1.0, 0.0)), omegaf0)*ds(0)
@@ -762,7 +795,7 @@ while j < loopend:
         u1 = project(u1, V)
         psi = comp_stream_function(rho1, u1)
         psi_max = max(psi.vector().get_local())
-        max_loc = max_location(psi)
+        max_loc = max_location(psi, mesh)
         with open("EWMStream-Function.txt", "a") as text_file:
              text_file.write("Re="+str(Re*conv)+", We="+str(We)+", Ma="+str(Ma)+", t="+str(t)+"----- psi_min="+str(psi_max)+"---"+str(max_loc)+'\n')
 
@@ -1140,7 +1173,7 @@ while j < loopend:
 
         if max(norm(tau1_vec.vector(),'linf'),norm(w1.vector(), 'linf')) < 10E6 and j==1 or j==loopend:
             # Plot Stress/Normal Stress Difference
-            sigma_xx = project(sigmacon(u1, p1, tau1)[0,0], Q)
+            sigma_xx = project(sigmacon(u1, p1, tau1, betav, We)[0,0], Q)
             mplot(sigma_xx)
             plt.colorbar()
             plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/sigma_xxRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")

@@ -1,8 +1,11 @@
+"""
+Flow Between Eccentrically Rotating Cylinders - Alex Mackay 2018
+This Python module contains functions for computing Non Newtonian flow between rotating cylinders using the finite element method.
+...
 
+"""
 from decimal import *
 from dolfin import *
-#from fenics import *
-#from ufl import *
 from mshr import *
 from math import pi, sin, cos, sqrt, fabs
 import numpy as np
@@ -41,7 +44,7 @@ parameters["std_out_all_processes"] = False;
 
 
 
-def JBP_mesh(mm):
+def JBP_mesh(mesh_res, x_1, x_2, y_1, y_2, r_a, r_b):
     c0 = Circle(Point(0.0,0.0), r_a, 256) 
     c1 = Circle(Point(x_1,y_1), r_a, 256)
     c2 = Circle(Point(x_2,y_2), r_b, 256)
@@ -60,7 +63,7 @@ def JBP_mesh(mm):
     cyl0 = c2 - c0
     cyl = c2 - c1
 
-    mesh = generate_mesh(cyl, mm)
+    mesh = generate_mesh(cyl, mesh_res)
 
     return mesh
 
@@ -117,7 +120,6 @@ def  tgrad (w):
     """ Returns  transpose  gradient """
     w_grad = grad(w)
 
-    #tran_w_grad = as_matrix(w_grad[i,j], (j,i))
     tran_w_grad = w_grad.T
     #tran_w_grad = w_grad.transpose()
 
@@ -129,21 +131,21 @@ def Dincomp (w):
     return (grad(w) + tgrad(w))/2
 def Dcomp (w):
     """ Returns 2* the  rate of  strain  tensor """
-    return ((grad(w) + tgrad(w))-(2.0/3)*div(w)*Identity(len(u)))/2.
+    return ((grad(w) + tgrad(w))-(2.0/3)*div(w)*Identity(len(w)))/2.
 def DinG (D):
     """ Returns 2* the  rate of  strain  tensor """
     return (D + D.T)/2
 
-def sigma(u, p, Tau):
+def sigma(u, p, Tau, betav, We):
     return 2*betav*Dcomp(u) - p*Identity(len(u)) + Tau
 
-def sigmacon(u, p, Tau):
+def sigmacon(u, p, Tau, betav, We):
     return 2*betav*Dcomp(u) - p*Identity(len(u)) + ((1.0-betav)/We)*(Tau-Identity(len(u)))
 
-def fene_sigma(u, p, Tau, b, lambda_d):
+def fene_sigma(u, p, Tau, b, lambda_d, betav, We):
     return 2.0*betav*Dincomp(u) - p*Identity(len(u)) + ((1.-betav)/We)*( phi_def(u, lambda_d)*( fene_func(Tau, b)*Tau-Identity(len(u)) ) )
 
-def fene_sigmacom(u, p, Tau, b,lambda_d):
+def fene_sigmacom(u, p, Tau, b,lambda_d, betav, We):
     return 2.0*betav*Dcomp(u) - p*Identity(len(u)) + ((1.-betav)/We)*( phi_def(u, lambda_d)*( fene_func(Tau, b)*Tau-Identity(len(u)) ) )
 
 def Fdef(u, Tau):
@@ -172,7 +174,7 @@ def absolute(u):
     u.vector()[:] = u_array
     return u
 
-def phi(u, p, T, A, B, K_0, N):
+def phi(u, p, T, A, B, K_0, N, betap):
     
     K = 1. + A*p - B*(T/(1.+T))
     scalar_strain = np.power(2*inner(Dincomp(u), Dincomp(u)),0.5)
@@ -295,13 +297,14 @@ def comp_stream_function(rho, u):
 
     return psi
 
-def min_location(u):
+def min_location(u, mesh):
 
     V = u.function_space()
 
     if V.mesh().topology().dim() != 2:
        raise ValueError("Only minimum of scalar function in 2D can be computed.")
 
+    gdim = mesh.geometry().dim()
     dofs_x = V.tabulate_dof_coordinates().reshape((-1, gdim))
 
     function_array = u.vector().get_local()
@@ -313,13 +316,14 @@ def min_location(u):
     return min_loc
 
 
-def max_location(u):
+def max_location(u, mesh):
 
     V = u.function_space()
 
     if V.mesh().topology().dim() != 2:
        raise ValueError("Only minimum of scalar function in 2D can be computed.")
 
+    gdim = mesh.geometry().dim()
     dofs_x = V.tabulate_dof_coordinates().reshape((-1, gdim))
 
     function_array = u.vector().get_local()
@@ -346,92 +350,12 @@ def chunks(l, n):
 
 
 
-# HOLOLOW CYLINDER MESH
-
-# Parameters
-r_a = 1.0 #Journal Radius
-r_b = 2.0#1.25 #Bearing Radius
-x_1 = -0.80 #-0.2
-y_1 = 0.0
-x_2 = 0.0
-y_2 = 0.0
-ex = x_2-x_1
-ey = y_2-y_1
-ec = np.sqrt(ex**2+ey**2)
-c = r_b-r_a
-ecc = (ec)/(c)
-
-c3 = Circle(Point(x_1,y_1), 0.99*r_a, 256)  # Empty hole in mesh
-
-mm = 35
-mesh = JBP_mesh(mm)
-
-#mesh =refine_narrow(mesh,1)
-
-
-
-
-gdim = mesh.geometry().dim() # Mesh Geometry
-
-
-meshc= generate_mesh(c3, 15)
-
-mplot(mesh)
-plt.savefig("JBP_mesh_"+str(mm)+".png")
-plt.clf() 
-plt.close()
-
-#quit()
-
-
-#Jounral Boundary                                                                              
-class Omega0(SubDomain):
-      def inside(self, x, on_boundary):
-          return True if (x[0]-x_1)**2+(x[1]-y_1)**2 < (0.9*r_a**2+0.1*r_b**2) and on_boundary  else False  # and 
-omega0= Omega0()
-
-# Bearing Boundary
-class Omega1(SubDomain):
-      def inside(self, x, on_boundary):
-          return True if (x[0]-x_2)**2 + (x[1]-y_2)**2 > (0.1*r_a**2+0.9*r_b**2) and on_boundary else False  #
-omega1= Omega1()
-
-# Subdomian for the pressure boundary condition at (r_a,0)
-class POmega(SubDomain):
-      def inside(self, x, on_boundary):
-          return True if x[0] < 0.5*(r_a+r_b) and x[0] > 0 and x[1] < r_a*0.02 and x[1] > -r_a*0.05 and on_boundary else False 
-POmega=POmega()
-
-
-# Create mesh functions over the cell facets (Verify Boundary Classes)
-#print(mesh.topology().dim())
-sub_domains = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
-sub_domains.set_all(0)
-omega0.mark(sub_domains, 2)
-omega1.mark(sub_domains, 3)
-#POmega.mark(sub_domains, 4)
-
-#file = File("subdomains.pvd")
-#file << sub_domains
-#quit()
-
-#plot(sub_domains, interactive=False, scalarbar = False)
-#quit()
-
-#Define Boundary Parts
-boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
-#boundary_parts = FacetFunction("size_t", mesh)
-omega0.mark(boundary_parts,0)
-omega1.mark(boundary_parts,1)
-ds = Measure("ds")[boundary_parts]
-
 
 # Discretization  parameters
 family = "CG"; dfamily = "DG"; rich = "Bubble"
 shape = "triangle"; order = 2
 
-#mesh.ufl_cell()
-
+"""
 
 # Define spaces
 
@@ -576,27 +500,6 @@ h = CellDiameter(mesh)
 spin =  DirichletBC(W.sub(0), w, omega0)  #The inner cylinder will be rotated with constant angular velocity w_a
 noslip  = DirichletBC(W.sub(0), (0.0, 0.0), omega1) #The outer cylinder remains fixed with zero velocity 
 temp0 =  DirichletBC(Q, T_h, omega0)    #Temperature on Omega0 
+"""
 
-#Collect Boundary Conditions
-bcu = [noslip, spin]
-bcp = []
-bcT = [temp0]
-bctau = []
-
-Np= len(p0.vector().get_local())
-Nv= len(w0.vector().get_local())  
-Nvel = len(uu0.vector().get_local()) 
-Ntau= len(tau0_vec.vector().get_local())
-dof= 3*Nv+2*Ntau+Np
-print('############# Discrete Space Characteristics ############')
-print('Degree of Elements', order)
-print('Size of Pressure Space = %d ' % Np)
-print('Size of Velocity Space = %d ' % Nvel)    
-print('Size of Velocity/DEVSS Space = %d ' % Nv)
-print('Size of Stress Space = %d ' % Ntau)
-print('Degrees of Freedom = %d ' % dof)
-print('Number of Cells:', mesh.num_cells())
-print('Number of Vertices:', mesh.num_vertices())
-print('Minimum Cell Diamter:', mesh.hmin())
-print('Maximum Cell Diamter:', mesh.hmax())
 
