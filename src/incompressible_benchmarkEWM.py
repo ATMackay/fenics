@@ -17,14 +17,15 @@ def update_progress(job_title, progress):
 update_progress("Simulation", 0)
 
 # SET TIMESTEPPING PARAMTER
-T_f = 10.0
+T_f = 2.0
 Tf = T_f
 
 # SET LOOPING PARAMETER
-loopend = 1
+loopend = 2
 primary_loop = 0                              
-adaptive_loop = 0
+adaptive_loop = False
 secondary_loop = 0
+max_refine = 2
 err_count = 0
 conv_fail = 0
 tol = 10E-6
@@ -35,7 +36,7 @@ defpar = 1.0
 conv = 1                                      # Non-inertial Flow Parameter (Re=0)
 We = 0.01
 betav = 0.5
-Re = 100
+Re = 10
 Ma = Re*0.0001
 c0 = 1.0/Ma
 
@@ -118,17 +119,18 @@ while primary_loop < loopend:
     y_1 = 0.0
     x_2 = 0.0
     y_2 = 0.0
-    if adaptive_loop == 0 and err_count < 1:
+    if adaptive_loop == False and err_count == 0:
         # Define mesh using JBP_base functions
         # HOLOLOW CYLINDER MESH
         x_1 = - 0.90 -(0.01 * secondary_loop) #x_1 = -0.80      
         mesh_resolution = 35
         mesh = JBP_mesh(mesh_resolution, x_1, x_2, y_1, y_2, r_a, r_b)
-        # Plot Mesh
-        mplot(mesh)
-        plt.savefig("JBP_mesh_"+str(mesh_resolution)+".png")
-        plt.clf() 
-        plt.close()
+
+    # Plot Mesh
+    mplot(mesh)
+    plt.savefig("JBP_mesh_"+str(mesh_resolution)+".png")
+    plt.clf() 
+    plt.close()
 
     # Generate internal mesh for hollow cylinder
     c3 = Circle(Point(x_1,y_1), 0.99*r_a, 256)  # Empty hole in mesh
@@ -144,7 +146,6 @@ while primary_loop < loopend:
     tang = as_vector([n[1], -n[0]])
 
     # Finite Element Spaces
-
     V_s = VectorElement(family, mesh.ufl_cell(), order)       # Velocity Elements
     V_d = VectorElement(dfamily, mesh.ufl_cell(), order-1)
     V_se = VectorElement(rich, mesh.ufl_cell(),  order+1)
@@ -193,8 +194,6 @@ while primary_loop < loopend:
                    [R_vec[1], R_vec[2]]])
     Rt = as_matrix([[Rt_vec[0], Rt_vec[1]],
                     [Rt_vec[1], Rt_vec[2]]])        # DEVSS Space
-
-
 
 
     #Solution Functions
@@ -260,16 +259,15 @@ while primary_loop < loopend:
 
     #Define Boundary Parts
     boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
-    #boundary_parts = FacetFunction("size_t", mesh)
     omega0.mark(boundary_parts,0)
     omega1.mark(boundary_parts,1)
     ds = Measure("ds")[boundary_parts]
 
 
-    if adaptive_loop == 1: 
+    if adaptive_loop == True: 
         w = Expression(('(0.5*(1.0+tanh(8*(t-0.5))))*(x[1]-y1)/r_a' , '-(0.5*(1.0+tanh(8*(t-0.5))))*(x[0]-x1)/r_a' ), degree=2, r_a=r_a, x1=x_1, y1=y_1 , t=0.0)
             
-    if adaptive_loop == 0:
+    if adaptive_loop == False:
         w = Expression(('(x[1]-y1)/r_a' , '-(x[0]-x1)/r_a' ), degree=2, r_a=r_a, x1=x_1, y1=y_1 , t=0.0)
 
    
@@ -285,44 +283,19 @@ while primary_loop < loopend:
 
     # Incompressible + eccentricity range test
     betav = 1.0 - DOLFIN_EPS
-    Re = 100
-    We = 0.001
+    Re = 10
+    We = 0.000001
     Ma = 0.000001
 
-    """
-    # Incompressible + viscoelastic 
-    betav = 0.5
-    Ma = 0.000001
-    if primary_loop == 1:
-       betav = 1.0 - DOLFIN_EPS
-       We = 0.001
-    elif primary_loop == 2:
-       We = 0.1
-    elif primary_loop == 3:
-       We = 0.5
-    elif primary_loop == 4:
-       We = 0.75
-    elif primary_loop == 5:
-       We = 1.0
-    """
-    
 
-    # Adaptive Mesh Refinement Step
-    if adaptive_loop == 0 and err_count < 1: # 0 = on, 1 = off
-       We = 1.0
-       betav = 0.5
-       Tf = 1.5*(1 + 2*err_count*0.25)
-       dt = mesh.hmin()**2 
-       th = 0.0
-
-    Rey = Re*conv
 
     # Print Parameters of flow simulation
     t = 0.0                  #Time
 
-    if adaptive_loop == 0:
+    if adaptive_loop == False and err_count < max_refine:
         print('############# ADAPTIVE MESH REFINEMENT STAGE ################')   
         print( 'Number of Refinements:', err_count )
+        print( "Adaptive loops complete: ", adaptive_loop)
     print('############# Journal Bearing Length Ratios ############')
     ec = np.sqrt((x_2 - x_1)**2 + (y_2 - y_1)**2)
     c = r_b - r_a
@@ -425,9 +398,6 @@ while primary_loop < loopend:
     DEVSSGl_u1 = 2.0*(1.-betav)*inner(Dincomp(u),Dincomp(v))*dx    
     DEVSSGr_u1 = (1.-betav)*inner(D12 + D12.T,Dincomp(v))*dx
 
-
-    #Folder To Save Plots for Paraview
-    #fv=File("Velocity Results Re="+str(Rey)+"We="+str(We)+"b="+str(betav)+"theta"+str(theta)+"c0="+str(c0)+"/velocity "+str(t)+".pvd")
  
     #Lists for Energy Values
     x = list()
@@ -463,9 +433,10 @@ while primary_loop < loopend:
     # Time-stepping
     t = 0.0
     iter = 0            # iteration counter
-    maxiter = 10
-    if adaptive_loop == 0:
-       maxiter = 100000
+    maxiter = 100000
+    if adaptive_loop == False and err_count < max_refine:
+       maxiter = 15
+       dt = mesh.hmin()**2
     frames = int((Tf/dt)/1000)
     while t < Tf + DOLFIN_EPS and iter < maxiter:
         update_progress("Simulation "+str(secondary_loop ), t/Tf) # Update progress bar
@@ -623,10 +594,10 @@ while primary_loop < loopend:
         lhs_u1 = (Re/dt)*rho1*u                                          # Left Hand Side
         rhs_u1 = (Re/dt)*rho0*us                                         # Right Hand Side
 
-        a7=inner(lhs_u1,v)*dx + inner(D-grad(u),R)*dx                                           # Weak Form
+        a7=inner(lhs_u1,v)*dx + inner(D-grad(u),R)*dx                    # Weak Form
         L7=inner(rhs_u1,v)*dx - 0.5*inner( grad(p1-p0),v )*dx 
 
-        a7+= 0 #th*DEVSSGl_u1                                                   #DEVSS Stabilisation
+        a7+= 0 #th*DEVSSGl_u1                                                  
         L7+= 0 #th*DEVSSGr_u1   
 
         A7 = assemble(a7)
@@ -651,8 +622,8 @@ while primary_loop < loopend:
         a9 = inner(lhs_temp1,r)*dx + inner(difflhs_temp1,grad(r))*dx 
         L9 = inner(rhs_temp1,r)*dx + inner(diffrhs_temp1,grad(r))*dx - Di*Bi*inner(theta0,r)*ds(1) \
 
-        a9+= 0.0*th*DEVSSl_T1                                                #DEVSS Stabilisation
-        L9+= 0.0*th*DEVSSr_T1 
+        a9+= th*DEVSSl_T1                                                
+        L9+= th*DEVSSr_T1 
 
         A9 = assemble(a9)
         b9 = assemble(L9)
@@ -662,25 +633,27 @@ while primary_loop < loopend:
 
         theta1 = T1-T_0/(T_h-T_0)
 
-        # Stress Full Step
-        lhs_tau1 = (We*phi_ewm(tau0, theta1, k_ewm, B)/dt+1.0)*tau  +  We*phi_ewm(tau0, theta1, k_ewm, B)*FdefG(u1, D1, tau)                           # Left Hand Side
-        rhs_tau1= (We*phi_ewm(tau0, theta1, k_ewm, B)/dt)*tau0 + rho0*Identity(len(u)) 
+        if We > 0.00001 or adaptive_loop == False and err_count < max_refine:
+            # Do not compute stress if We is v. small
+            # Stress Full Step
+            lhs_tau1 = (We*phi_ewm(tau0, theta1, k_ewm, B)/dt+1.0)*tau  +  We*phi_ewm(tau0, theta1, k_ewm, B)*FdefG(u1, D1, tau)                           # Left Hand Side
+            rhs_tau1= (We*phi_ewm(tau0, theta1, k_ewm, B)/dt)*tau0 + rho0*Identity(len(u)) 
 
-        Ftau = inner(lhs_tau1,Rt)*dx - inner(rhs_tau1,Rt)*dx
-        a4 = lhs(Ftau)
-        L4 = rhs(Ftau) 
+            Ftau = inner(lhs_tau1,Rt)*dx - inner(rhs_tau1,Rt)*dx
+            a4 = lhs(Ftau)
+            L4 = rhs(Ftau) 
 
-        # SUPG / SU / LPS Stabilisation (User Choose One)
+                # SUPG / SU / LPS Stabilisation (User Choose One)
 
-        a4_stab = a4 + SU  # [SUPGl4, SUl4, LPSl_stab, LPSl_stress, diff_stab, 0]
-        L4_stab = L4  # [SUPGr4, SUr4, LPSr_stab, LPS_res_stab, 0]   
+            a4_stab = a4 + SU  # [SUPGl4, SUl4, LPSl_stab, LPSl_stress, diff_stab, 0]
+            L4_stab = L4  # [SUPGr4, SUr4, LPSr_stab, LPS_res_stab, 0]   
 
 
-        A4=assemble(a4_stab)                                     # Assemble System
-        b4=assemble(L4_stab)
-        [bc.apply(A4, b4) for bc in bctau]
-        solve(A4, tau1_vec.vector(), b4, "bicgstab", "default")
-        end()
+            A4=assemble(a4_stab)                                     # Assemble System
+            b4=assemble(L4_stab)
+            [bc.apply(A4, b4) for bc in bctau]
+            solve(A4, tau1_vec.vector(), b4, "bicgstab", "default")
+            end()
 
 
         taudiff = np.abs(tau1_vec.vector().get_local() - tau0_vec.vector().get_local()).max()
@@ -688,7 +661,7 @@ while primary_loop < loopend:
 
 
 
-        # Solution Calculations
+            # Solution Calculations
 
         E_k=assemble(0.5*rho1*dot(u1,u1)*dx)
         E_e=assemble((tau1_vec[0]+tau1_vec[2]-2.0)*dx)
@@ -754,8 +727,6 @@ while primary_loop < loopend:
 
         if max(norm(tau1_vec.vector(), 'linf'),norm(w1.vector(), 'linf')) > 10E6 or np.isnan(sum(tau1_vec.vector().get_local())):
             print( 'FE Solution Diverging')   #Print message 
-            #with open("DEVSS Weissenberg Compressible Stability.txt", "a") as text_file:
-                 #text_file.write("Iteration:"+str(primary_loop)+"--- Re="+str(Rey)+", We="+str(We)+", t="+str(t)+", dt="+str(dt)+'\n')
             if primary_loop == 1:           # Clear Lists
                x1=list()
                ek1=list()
@@ -778,7 +749,7 @@ while primary_loop < loopend:
                ee5=list() 
             err_count+= 1                          # Convergence Failures
             Tf= (iter-10)*dt
-            adaptive_loop = 0
+            adaptive_loop = False
             #quit()
             break
            
@@ -787,7 +758,7 @@ while primary_loop < loopend:
         t += dt
 
 
-    if adaptive_loop == 1:
+    if adaptive_loop == True:
         # Minimum of stream function (Eye of Rotation)
         u1 = project(u1, V)
         psi = comp_stream_function(rho1, u1)
@@ -801,6 +772,7 @@ while primary_loop < loopend:
              text_file.write("Re="+str(Rey*conv)+", We="+str(We)+", Ma="+str(Ma)+", t="+str(t)+", E_k="+str(E_k)+", E_e="+str(E_e)+'\n')
 
 
+        # THESE WILL HAVE TO CHANGE
         F_y = assemble(innerforcey) * (0.01**2)/(0.005*25)
         torque_journal = assemble(innertorque) * (0.01**3)/(0.005*25)
         # Data on Stability Measure
@@ -810,573 +782,399 @@ while primary_loop < loopend:
 
         # Not properly labelled!!
         # Plot Torque/Load for different Wessinberg Numbers
-        if max(norm(tau1_vec.vector(),'linf'),norm(p1.vector(), 'linf'),norm(w1.vector(), 'linf')) < 10E6 and primary_loop == loopend or primary_loop == 1:
-            # Plot Torque Data
-            plt.figure(0)
-            plt.plot(x1, y1, 'r-', label=r'$We=0$')
-            plt.plot(x2, y2, 'b-', label=r'$We=0.1$')
-            plt.plot(x3, y3, 'c-', label=r'$We=0.5$')
-            plt.plot(x4, y4, 'm-', label=r'$We=0.75$')
-            plt.plot(x5, y5, 'g-', label=r'$We=1.0$')
-            plt.legend(loc='best')
-            plt.xlabel('$t$', fontsize=16)
-            plt.ylabel('$C$', fontsize=16)
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Torque_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(1)
-            plt.plot(x1, zx1, 'r-', label=r'$We=0$')
-            plt.plot(x2, zx2, 'b-', label=r'$We=0.1$')
-            plt.plot(x3, zx3, 'c-', label=r'$We=0.5$')
-            plt.plot(x4, zx4, 'm-', label=r'$We=0.75$')
-            plt.plot(x5, zx5, 'g-', label=r'$We=1.0$')
-            plt.legend(loc='best')
-            plt.xlabel('$t$', fontsize=16)
-            plt.ylabel('$F_x$', fontsize=16)
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Horizontal_Load_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(2)
-            plt.plot(x1, z1, 'r-', label=r'$We=0$')
-            plt.plot(x2, z2, 'b-', label=r'$We=0.1$')
-            plt.plot(x3, z3, 'c-', label=r'$We=0.5$')
-            plt.plot(x4, z4, 'm-', label=r'$We=0.75$')
-            plt.plot(x5, z5, 'g-', label=r'$We=1.0$')
-            plt.legend(loc='best')
-            plt.xlabel('$t$', fontsize=16)
-            plt.ylabel('$F_y$', fontsize=16)
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Vertical_Load_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"al="+str(al)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(3)
-            plt.plot(zx1, z1, 'r-', label=r'$We=0$')
-            plt.plot(zx2, z2, 'b-', label=r'$We=0.1$')
-            plt.plot(zx3, z3, 'c-', label=r'$We=0.5$')
-            plt.plot(zx4, z4, 'm-', label=r'$We=0.75$')
-            plt.plot(zx5, z5, 'g-', label=r'$We=1.0$')
-            plt.legend(loc='best')
-            plt.xlabel('$F_x$', fontsize=16)
-            plt.ylabel('$F_y$', fontsize=16)
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Force_Evolution_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
-            plt.clf()
 
         # Plot Torque/Load for Incompresssible Newtonian vd Viscoelastic
-        """if max(norm(tau1_vec.vector(),'linf'),norm(p1.vector(), 'linf'),norm(w1.vector(), 'linf')) < 10E6 and primary_loop == 5 or primary_loop == 2 or primary_loop == 1:
-            # Plot Torque Data
-            plt.figure(0)
-            plt.plot(x1, y1, 'r-', label=r'Incompressible Newtonian')
-            plt.plot(x2, y2, 'b-', label=r'Oldroyd-B $(We=0.1, Ma=0.005)$')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('$C$')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Torque_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"al="+str(al)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(1)
-            plt.plot(x1, zx1, 'r-', label=r'Incompressible Newtonian')
-            plt.plot(x2, zx2, 'b-', label=r'Oldroyd-B $(We=0.1, Ma=0.005)$')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('$F_x$')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Horizontal_Load_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"al="+str(al)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(2)
-            plt.plot(x1, z1, 'r-', label=r'Incompressible Newtonian')
-            plt.plot(x2, z2, 'b-', label=r'Oldroyd-B $(We=0.1, Ma=0.005)$')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('$F_y$')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Vertical_Load_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"al="+str(al)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(3)
-            plt.plot(zx1, z1, 'r-', label=r'Incompressible Newtonian')
-            plt.plot(zx2, z2, 'b-', label=r'Oldroyd-B $(We=0.1, Ma=0.005)$')
-            plt.legend(loc='best')
-            plt.xlabel('$F_x$')
-            plt.ylabel('$F_y$')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Force_Evolution_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"al="+str(al)+"t="+str(t)+".png")
-            plt.clf()"""
+    if max(norm(tau1_vec.vector(),'linf'),norm(p1.vector(), 'linf'),norm(w1.vector(), 'linf')) < 10E6 and primary_loop == loopend or primary_loop == 2 or primary_loop == 1:
+        # Plot Torque Data
+        plt.figure(0)
+        plt.plot(x1, y1, 'r-', label=r'Incompressible Newtonian')
+        #plt.plot(x2, y2, 'b-', label=r'Oldroyd-B $(We=0.1, Ma=0.005)$')
+        plt.legend(loc='best')
+        plt.xlabel('time(s)')
+        plt.ylabel('$C$')
+        plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Torque_We="+str(We)+"Re="+str(Re*conv)+"b="+str(betav)+"Ma="+str(Ma)+"al="+str(al)+"t="+str(t)+".png")
+        plt.clf()
+        plt.figure(1)
+        plt.plot(x1, zx1, 'r-', label=r'Incompressible Newtonian')
+        #plt.plot(x2, zx2, 'b-', label=r'Oldroyd-B $(We=0.1, Ma=0.005)$')
+        plt.legend(loc='best')
+        plt.xlabel('time(s)')
+        plt.ylabel('$F_x$')
+        plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Horizontal_Load_We="+str(We)+"Re="+str(Re*conv)+"b="+str(betav)+"Ma="+str(Ma)+"al="+str(al)+"t="+str(t)+".png")
+        plt.clf()
+        plt.figure(2)
+        plt.plot(x1, z1, 'r-', label=r'Incompressible Newtonian')
+        #plt.plot(x2, z2, 'b-', label=r'Oldroyd-B $(We=0.1, Ma=0.005)$')
+        plt.legend(loc='best')
+        plt.xlabel('time(s)')
+        plt.ylabel('$F_y$')
+        plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Vertical_Load_We="+str(We)+"Re="+str(Re*conv)+"b="+str(betav)+"Ma="+str(Ma)+"al="+str(al)+"t="+str(t)+".png")
+        plt.clf()
+        plt.figure(3)
+        plt.plot(zx1, z1, 'r-', label=r'Incompressible Newtonian')
+        #plt.plot(zx2, z2, 'b-', label=r'Oldroyd-B $(We=0.1, Ma=0.005)$')
+        plt.legend(loc='best')
+        plt.xlabel('$F_x$')
+        plt.ylabel('$F_y$')
+        plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Force_Evolution_We="+str(We)+"Re="+str(Re*conv)+"b="+str(betav)+"Ma="+str(Ma)+"al="+str(al)+"t="+str(t)+".png")
+        plt.clf()
 
-        # Plot Torque/Load for different Wessinberg Numbers
-        """if max(norm(tau1_vec.vector(),'linf'),norm(p1.vector(), 'linf'),norm(w1.vector(), 'linf')) < 10E6 and primary_loop==5 or primary_loop==3 or primary_loop==1:
-            # Plot Torque Data
-            plt.figure(0)
-            plt.plot(x1, y1, 'r-', label=r'$\alpha=0.1$')
-            plt.plot(x2, y2, 'b-', label=r'$\alpha=0.5$')
-            plt.plot(x3, y3, 'c-', label=r'$\alpha=0.9$')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('Torque')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Torque_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(1)
-            plt.plot(x1, zx1, 'r-', label=r'$\alpha=0.1$')
-            plt.plot(x2, zx2, 'b-', label=r'$\alpha=0.5$')
-            plt.plot(x3, zx3, 'c-', label=r'$\alpha=0.9$')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('Horzontal Load Force')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Horizontal_Load_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(2)
-            plt.plot(x1, z1, 'r-', label=r'$\alpha=0.1$')
-            plt.plot(x2, z2, 'b-', label=r'$\alpha=0.5$')
-            plt.plot(x3, z3, 'c-', label=r'$\alpha=0.9$')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('Vertical Load Force')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Vertical_Load_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(3)
-            plt.plot(zx1, z1, 'r-', label=r'$\alpha=0.1$')
-            plt.plot(zx2, z2, 'b-', label=r'$\alpha=0.5$')
-            plt.plot(zx3, z3, 'c-', label=r'$\alpha=0.9$')
-            plt.legend(loc='best')
-            plt.xlabel('Fx')
-            plt.ylabel('Fy')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Force_Evolution_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-            plt.clf()"""
 
         # Newtonian Vs Non-Newtonian
-        """if max(norm(tau1_vec.vector(),'linf'),norm(p1.vector(), 'linf'),norm(w1.vector(), 'linf')) < 10E6 and primary_loop==2 or primary_loop==1:
-            # Plot Torque Data
-            plt.figure(0)
-            plt.plot(x1, y1, 'r-', label=r'Newtonian')
-            plt.plot(x2, y2, 'b-', label=r'Oldroyd-B ($We=0.5$)')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('Torque')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Torque_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(1)
-            plt.plot(x1, zx1, 'r-', label=r'Newtonian')
-            plt.plot(x2, zx2, 'b-', label=r'Oldroyd-B ($We=0.5$)')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('Horzontal Load Force')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Horizontal_Load_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(2)
-            plt.plot(x1, z1, 'r-', label=r'Newtonian')
-            plt.plot(x2, z2, 'b-', label=r'Oldroyd-B ($We=0.5$)')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('Vertical Load Force')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Vertical_Load_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(3)
-            plt.plot(zx1, z1, 'r-', label=r'Newtonian')
-            plt.plot(zx2, z2, 'b-', label=r'Oldroyd-B ($We=0.5$)')
-            plt.legend(loc='best')
-            plt.xlabel('Fx')
-            plt.ylabel('Fy')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Force_Evolution_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-            plt.clf()"""
-
+    """   
+    if max(norm(tau1_vec.vector(),'linf'),norm(p1.vector(), 'linf'),norm(w1.vector(), 'linf')) < 10E6 and primary_loop==2 or primary_loop==1:
+        # Plot Torque Data
+        plt.figure(0)
+        plt.plot(x1, y1, 'r-', label=r'Newtonian')
+        plt.plot(x2, y2, 'b-', label=r'Oldroyd-B ($We=0.5$)')
+        plt.legend(loc='best')
+        plt.xlabel('time(s)')
+        plt.ylabel('Torque')
+        plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Torque_We="+str(We)+"Re="+str(Re*conv)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+        plt.clf()
+        plt.figure(1)
+        plt.plot(x1, zx1, 'r-', label=r'Newtonian')
+        plt.plot(x2, zx2, 'b-', label=r'Oldroyd-B ($We=0.5$)')
+        plt.legend(loc='best')
+        plt.xlabel('time(s)')
+        plt.ylabel('Horzontal Load Force')
+        plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Horizontal_Load_We="+str(We)+"Re="+str(Re*conv)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+        plt.clf()
+        plt.figure(2)
+        plt.plot(x1, z1, 'r-', label=r'Newtonian')
+        plt.plot(x2, z2, 'b-', label=r'Oldroyd-B ($We=0.5$)')
+        plt.legend(loc='best')
+        plt.xlabel('time(s)')
+        plt.ylabel('Vertical Load Force')
+        plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Vertical_Load_We="+str(We)+"Re="+str(Re*conv)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+        plt.clf()
+        plt.figure(3)
+        plt.plot(zx1, z1, 'r-', label=r'Newtonian')
+        plt.plot(zx2, z2, 'b-', label=r'Oldroyd-B ($We=0.5$)')
+        plt.legend(loc='best')
+        plt.xlabel('Fx')
+        plt.ylabel('Fy')
+        plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Force_Evolution_We="+str(We)+"Re="+str(Re*conv)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+        plt.clf()
+    """
         
 
-        # Plot Torque/Load for different Reynolds Numbers Numbers
-        """if max(norm(tau1_vec.vector(),'linf'),norm(p1.vector(), 'linf'),norm(w1.vector(), 'linf')) < 10E6 and primary_loop==4 or primary_loop==2:
-            # Plot Torque Data
-            plt.figure(0)
-            plt.plot(x1, y1, 'r-', label=r'$Re=25$')
-            plt.plot(x2, y2, 'b-', label=r'$Re=50$')
-            plt.plot(x3, y3, 'c-', label=r'$Re=100$')
-            plt.plot(x4, y4, 'm-', label=r'$Re=200$')
-            plt.legend(loc='best')
-            plt.xlabel('t')
-            plt.ylabel('$C$')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Torque_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(1)
-            plt.plot(x1, zx1, 'r-', label=r'$Re=25$')
-            plt.plot(x2, zx2, 'b-', label=r'$Re=50$')
-            plt.plot(x3, zx3, 'c-', label=r'$Re=100$')
-            plt.plot(x4, zx4, 'm-', label=r'$Re=200$')
-            plt.legend(loc='best')
-            plt.xlabel('t')
-            plt.ylabel('$F_x$')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Horizontal_Load_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(2)
-            plt.plot(x1, z1, 'r-', label=r'$Re=25$')
-            plt.plot(x2, z2, 'b-', label=r'$Re=50$')
-            plt.plot(x3, z3, 'c-', label=r'$Re=100$')
-            plt.plot(x4, z4, 'm-', label=r'$Re=200$')
-            plt.legend(loc='best')
-            plt.xlabel('t)')
-            plt.ylabel('$F_y$')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Vertical_Load_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(3)
-            plt.plot(zx1, z1, 'r-', label=r'$Re=25$')
-            plt.plot(zx2, z2, 'b-', label=r'$Re=50$')
-            plt.plot(zx3, z3, 'c-', label=r'$Re=100$')
-            plt.plot(zx4, z4, 'm-', label=r'$Re=200$')
-            plt.legend(loc='best')
-            plt.xlabel('$F_x$')
-            plt.ylabel('$F_y$')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Force_Evolution_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-            plt.clf()"""
-
-        # Plot Torque/Load for different Mach Numbers
-        """if max(norm(tau1_vec.vector(),'linf'),norm(p1.vector(), 'linf'),norm(w1.vector(), 'linf')) < 10E6 and primary_loop==1 or primary_loop==3:
-            # Plot Torque Data
-            plt.figure(0)
-            plt.plot(x1, y1, 'r-', label=r'$Ma=0.0005$')
-            plt.plot(x2, y2, 'b-', label=r'$Ma=0.001$')
-            plt.plot(x3, y3, 'c-', label=r'$Ma=0.01$')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('Torque')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/TorqueWe="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(1)
-            plt.plot(x1, zx1, 'r-', label=r'$Ma=0.0005$')
-            plt.plot(x2, zx2, 'b-', label=r'$Ma=0.001$')
-            plt.plot(x3, zx3, 'c-', label=r'$Ma=0.01$')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('Horzontal Load Force')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Horizontal_Load We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(2)
-            plt.plot(x1, z1, 'r-', label=r'$Ma=0.0005$')
-            plt.plot(x2, z2, 'b-', label=r'$Ma=0.001$')
-            plt.plot(x3, z3, 'c-', label=r'$Ma=0.01$')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('Vertical Load Force')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Vertical_Load We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-            plt.clf()
-            plt.figure(3)
-            plt.plot(zx1, z1, 'r-', label=r'$Ma=0.0005$')
-            plt.plot(zx2, z2, 'b-', label=r'$Ma=0.001$')
-            plt.plot(zx3, z3, 'c-', label=r'$Ma=0.01$')
-            plt.legend(loc='best')
-            plt.xlabel('Fx')
-            plt.ylabel('Fy')
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Force_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-            plt.clf()"""
 
             #Plot Kinetic and elasic Energies for different Weissenberg numbers at Re FIXED 
-        """if max(norm(tau1_vec.vector(),'linf'),norm(w1.vector(), 'linf')) < 10E6 and primary_loop==5 or primary_loop==3 or primary_loop==1:
-            # Kinetic Energy
-            plt.figure(0)
-            plt.plot(x1, ek1, 'r-', label=r'$Ma=0.0005$')
-            plt.plot(x2, ek2, 'b-', label=r'$Ma=0.001$')
-            plt.plot(x3, ek3, 'c-', label=r'$Ma=0.01$')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('$E_{kinetic}$')
-            plt.savefig("Compressible Viscoelastic Flow Results/Energy/KineticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-            plt.clf()
-            # Elastic Energy
-            plt.figure(1)
-            plt.plot(x1, ee1, 'r-', label=r'$Ma=0.0005$')
-            plt.plot(x2, ee2, 'b-', label=r'$Ma=0.001$')
-            plt.plot(x3, ee3, 'c-', label=r'$Ma=0.01$')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('$E_{elastic}$')
-            plt.savefig("Compressible Viscoelastic Flow Results/Energy/ElasticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-            plt.clf()"""
+    """if max(norm(tau1_vec.vector(),'linf'),norm(w1.vector(), 'linf')) < 10E6 and primary_loop==5 or primary_loop==3 or primary_loop==1:
+        # Kinetic Energy
+        plt.figure(0)
+        plt.plot(x1, ek1, 'r-', label=r'$Ma=0.0005$')
+        plt.plot(x2, ek2, 'b-', label=r'$Ma=0.001$')
+        plt.plot(x3, ek3, 'c-', label=r'$Ma=0.01$')
+        plt.legend(loc='best')
+        plt.xlabel('time(s)')
+        plt.ylabel('$E_{kinetic}$')
+        plt.savefig("Compressible Viscoelastic Flow Results/Energy/KineticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+        plt.clf()
+        # Elastic Energy
+        plt.figure(1)
+        plt.plot(x1, ee1, 'r-', label=r'$Ma=0.0005$')
+        plt.plot(x2, ee2, 'b-', label=r'$Ma=0.001$')
+        plt.plot(x3, ee3, 'c-', label=r'$Ma=0.01$')
+        plt.legend(loc='best')
+        plt.xlabel('time(s)')
+        plt.ylabel('$E_{elastic}$')
+        plt.savefig("Compressible Viscoelastic Flow Results/Energy/ElasticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+        plt.clf()"""
 
             #Plot Kinetic and elasic Energies for different Weissenberg numbers at Re FIXED 
-        if max(norm(tau1_vec.vector(),'linf'),norm(w1.vector(), 'linf')) < 10E6 and primary_loop==loopend or primary_loop==1:
-            # Kinetic Energy
-            plt.figure(0)
-            plt.plot(x1, ek1, 'r-', label=r'$We=0$')
-            plt.plot(x2, ek2, 'b-', label=r'$We=0.1$')
-            plt.plot(x3, ek3, 'c-', label=r'$We=0.5$')
-            plt.plot(x4, ek4, 'm-', label=r'$We=0.75$')
-            plt.plot(x5, ek5, 'g-', label=r'$We=1.0$')
-            plt.legend(loc='best')
-            plt.xlabel('$t$', fontsize=16)
-            plt.ylabel('$E_{k}$', fontsize=16)
-            plt.savefig("Compressible Viscoelastic Flow Results/Energy/KineticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-            plt.clf()
-            # Elastic Energy
-            plt.figure(1)
-            plt.plot(x1, ee1, 'r-', label=r'$We=0$')
-            plt.plot(x2, ee2, 'b-', label=r'$We=0.1$')
-            plt.plot(x3, ee3, 'c-', label=r'$We=0.5$')
-            plt.plot(x4, ee4, 'm-', label=r'$We=0.75$')
-            plt.plot(x5, ee5, 'g-', label=r'$We=1.0$')
-            plt.legend(loc='best')
-            plt.xlabel('$t$', fontsize=16)
-            plt.ylabel('$E_{e}$', fontsize=16)
-            plt.savefig("Compressible Viscoelastic Flow Results/Energy/ElasticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-            plt.clf()
-
-            #Plot Kinetic and elasic Energies for different Thermal Expansion Coefficients 
-        """if max(norm(tau1_vec.vector(),'linf'),norm(w1.vector(), 'linf')) < 10E6 and primary_loop==5 or primary_loop==3 or primary_loop==1:
-            # Kinetic Energy
-            plt.figure(0)
-            plt.plot(x1, ek1, 'r-', label=r'$\alpha=0.1$')
-            plt.plot(x2, ek2, 'b-', label=r'$\alpha=0.5$')
-            plt.plot(x3, ek3, 'c-', label=r'$\alpha=0.9$')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('$E_{kinetic}$')
-            plt.savefig("Compressible Viscoelastic Flow Results/Energy/KineticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-            plt.clf()
-            # Elastic Energy
-            plt.figure(1)
-            plt.plot(x1, ee1, 'r-', label=r'$\alpha=0.1$')
-            plt.plot(x2, ee2, 'b-', label=r'$\alpha=0.5$')
-            plt.plot(x3, ee3, 'c-', label=r'$\alpha=0.9$')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('$E_{elastic}$')
-            plt.savefig("Compressible Viscoelastic Flow Results/Energy/ElasticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-            plt.clf()"""
-
-            #Plot Kinetic and elasic Energies for different Weissenberg numbers at Re FIXED 
-        """if max(norm(tau1_vec.vector(),'linf'),norm(w1.vector(), 'linf')) < 10E6 and primary_loop==4 or primary_loop==2:
-            # Kinetic Energy
-            plt.figure(0)
-            plt.plot(x1, ek1, 'r-', label=r'$Re=25$')
-            plt.plot(x2, ek2, 'b-', label=r'$Re=50$')
-            plt.plot(x3, ek3, 'c-', label=r'$Re=100$')
-            plt.plot(x4, ek4, 'm-', label=r'$Re=200$')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('$E_{kinetic}$')
-            plt.savefig("Compressible Viscoelastic Flow Results/Energy/KineticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-            plt.clf()
-            # Elastic Energy
-            plt.figure(1)
-            plt.plot(x1, ee1, 'r-', label=r'$Re=25$')
-            plt.plot(x2, ee2, 'b-', label=r'$Re=50$')
-            plt.plot(x3, ee3, 'c-', label=r'$Re=100$')
-            plt.plot(x4, ee4, 'm-', label=r'$Re=200$')
-            plt.legend(loc='best')
-            plt.xlabel('time(s)')
-            plt.ylabel('$E_{elastic}$')
-            plt.savefig("Compressible Viscoelastic Flow Results/Energy/ElasticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-            plt.clf()"""
-
-        """fv = File("Paraview_Results/Velocity Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/velocity "+str(t)+".pvd")
-        fv_x = File("Paraview_Results/Velocity Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/u_x "+str(t)+".pvd")
-        fv_y = File("Paraview_Results/Velocity Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/u_y "+str(t)+".pvd")
-        fmom = File("Paraview_Results/Velocity Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/mom "+str(t)+".pvd")
-        fp = File("Paraview_Results/Pressure Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/pressure "+str(t)+".pvd")
-        ftau_xx = File("Paraview_Results/Stress Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/tua_xx "+str(t)+".pvd")
-        ftau_xy = File("Paraview_Results/Stress Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/tau_xy "+str(t)+".pvd")
-        ftau_yy = File("Paraview_Results/Stress Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/tau_yy "+str(t)+".pvd")
-        f_N1 = File("Paraview_Results/Stress Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/N1"+str(t)+".pvd")"""
+    """        
+    if max(norm(tau1_vec.vector(),'linf'),norm(w1.vector(), 'linf')) < 10E6 and primary_loop==loopend or primary_loop==1:
+        # Kinetic Energy
+        plt.figure(0)
+        plt.plot(x1, ek1, 'r-', label=r'$We=0$')
+        plt.plot(x2, ek2, 'b-', label=r'$We=0.1$')
+        plt.plot(x3, ek3, 'c-', label=r'$We=0.5$')
+        plt.plot(x4, ek4, 'm-', label=r'$We=0.75$')
+        plt.plot(x5, ek5, 'g-', label=r'$We=1.0$')
+        plt.legend(loc='best')
+        plt.xlabel('$t$', fontsize=16)
+        plt.ylabel('$E_{k}$', fontsize=16)
+        plt.savefig("Compressible Viscoelastic Flow Results/Energy/KineticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+        plt.clf()
+        # Elastic Energy
+        plt.figure(1)
+        plt.plot(x1, ee1, 'r-', label=r'$We=0$')
+        plt.plot(x2, ee2, 'b-', label=r'$We=0.1$')
+        plt.plot(x3, ee3, 'c-', label=r'$We=0.5$')
+        plt.plot(x4, ee4, 'm-', label=r'$We=0.75$')
+        plt.plot(x5, ee5, 'g-', label=r'$We=1.0$')
+        plt.legend(loc='best')
+        plt.xlabel('$t$', fontsize=16)
+        plt.ylabel('$E_{e}$', fontsize=16)
+        plt.savefig("Compressible Viscoelastic Flow Results/Energy/ElasticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+        plt.clf()
+    """
 
 
-        if max(norm(tau1_vec.vector(),'linf'),norm(w1.vector(), 'linf')) < 10E6 and primary_loop==1 or primary_loop==loopend:
-            # Plot Stress/Normal Stress Difference
-            sigma_xx = project(sigmacon(u1, p1, tau1, betav, We)[0,0], Q)
-            mplot(sigma_xx)
-            plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/sigma_xxRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-            plt.clf() 
-            tau_xx=project(tau1[0,0],Q)
-            mplot(tau_xx)
-            plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/tau_xxRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-            plt.clf() 
-            tau_xy=project(tau1[1,0],Q)
-            mplot(tau_xy)
-            plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/tau_xyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-            plt.clf() 
-            tau_yy=project(tau1[1,1],Q)
-            mplot(tau_yy)
-            plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/tau_yyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-            plt.clf() 
-            N1=project(tau1[0,0]-tau1[1,1],Q)
-            mplot(N1)
-            plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/FirstNormalStressDifferenceRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-            plt.clf()
+    """
+    if max(norm(tau1_vec.vector(),'linf'),norm(w1.vector(), 'linf')) < 10E6 and primary_loop==1 or primary_loop==loopend:
+        # Plot Stress/Normal Stress Difference
+        sigma_xx = project(sigmacon(u1, p1, tau1, betav, We)[0,0], Q)
+        mplot(sigma_xx)
+        plt.colorbar()
+        plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/sigma_xxRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+        plt.clf() 
+        tau_xx=project(tau1[0,0],Q)
+        mplot(tau_xx)
+        plt.colorbar()
+        plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/tau_xxRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+        plt.clf() 
+        tau_xy=project(tau1[1,0],Q)
+        mplot(tau_xy)
+        plt.colorbar()
+        plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/tau_xyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+        plt.clf() 
+        tau_yy=project(tau1[1,1],Q)
+        mplot(tau_yy)
+        plt.colorbar()
+        plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/tau_yyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+        plt.clf() 
+        N1=project(tau1[0,0]-tau1[1,1],Q)
+        mplot(N1)
+        plt.colorbar()
+        plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/FirstNormalStressDifferenceRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+        plt.clf()
 
 
-            # Matlab Plot of the Solution at t=Tf
-            mplot(rho1)
-            plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/DensityRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
-            plt.clf()
-            mom_mag = project(rho1*magnitude(u1), Q)
-            mplot(mom_mag)
-            plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/MomentumRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
-            plt.clf()
-            mplot(p1)
-            plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/PressureRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
-            plt.clf()
-            theta0_Q = project(theta0, Q)
-            mplot(theta0_Q)
-            plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/TemperatureRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
-            plt.clf()
-            divu=project(div(u1),Q)
-            mplot(divu)
-            plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/CompressionRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
-            plt.clf()
-            mplot(psi)
-            plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/stream_functionRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
-            plt.clf()
-            therm_visc = project(betav + (1.-betav)*phi_ewm(tau1, theta1, k_ewm, B), Q)
-            mplot(therm_visc)
-            plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/viscosity_functionRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
-            plt.clf()
+        # Matlab Plot of the Solution at t=Tf
+        mplot(rho1)
+        plt.colorbar()
+        plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/DensityRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+        plt.clf()
+        mom_mag = project(rho1*magnitude(u1), Q)
+        mplot(mom_mag)
+        plt.colorbar()
+        plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/MomentumRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+        plt.clf()
+        mplot(p1)
+        plt.colorbar()
+        plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/PressureRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+        plt.clf()
+        theta0_Q = project(theta0, Q)
+        mplot(theta0_Q)
+        plt.colorbar()
+        plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/TemperatureRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+        plt.clf()
+        divu=project(div(u1),Q)
+        mplot(divu)
+        plt.colorbar()
+        plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/CompressionRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+        plt.clf()
+        mplot(psi)
+        plt.colorbar()
+        plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/stream_functionRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+        plt.clf()
+        therm_visc = project(betav + (1.-betav)*phi_ewm(tau1, theta1, k_ewm, B), Q)
+        mplot(therm_visc)
+        plt.colorbar()
+        plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/viscosity_functionRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+        plt.clf()
 
 
 
 
-            #Plot PRESSURE Contours USING MATPLOTLIB
-            # Scalar Function code
+        #Plot PRESSURE Contours USING MATPLOTLIB
+        # Scalar Function code
 
-            #Set Values for inner domain as -infty
-            Q1=FunctionSpace(meshc, "CG", 1)
+        #Set Values for inner domain as -infty
+        Q1=FunctionSpace(meshc, "CG", 1)
 
-            x = Expression('x[0]', degree=2)  #GET X-COORDINATES LIST
-            y = Expression('x[1]', degree=2)  #GET Y-COORDINATES LIST
-            pj=Expression('0', degree=2) #Expression for the 'pressure' in the domian
-            pjq=interpolate(pj, Q1)
-            pjvals=pjq.vector().get_local()
+        x = Expression('x[0]', degree=2)  #GET X-COORDINATES LIST
+        y = Expression('x[1]', degree=2)  #GET Y-COORDINATES LIST
+        pj=Expression('0', degree=2) #Expression for the 'pressure' in the domian
+        pjq=interpolate(pj, Q1)
+        pjvals=pjq.vector().get_local()
 
-            xyvals=meshc.coordinates()
-            xqalsv = interpolate(x, Q1)
-            yqalsv= interpolate(y, Q1)
+        xyvals=meshc.coordinates()
+        xqalsv = interpolate(x, Q1)
+        yqalsv= interpolate(y, Q1)
 
-            xqals= xqalsv.vector().get_local()
-            yqals= yqalsv.vector().get_local()
+        xqals= xqalsv.vector().get_local()
+        yqals= yqalsv.vector().get_local()
 
-            pvals = p1.vector().get_local() # GET SOLUTION u= u(x,y) list
-            xyvals = mesh.coordinates() # CLEAN THIS UP!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            xvalsv = interpolate(x, Q)#xyvals[:,0]
-            yvalsv= interpolate(y, Q)#xyvals[:,1]
+        pvals = p1.vector().get_local() # GET SOLUTION u= u(x,y) list
+        xyvals = mesh.coordinates() # CLEAN THIS UP!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        xvalsv = interpolate(x, Q)#xyvals[:,0]
+        yvalsv= interpolate(y, Q)#xyvals[:,1]
 
-            xvals = xvalsv.vector().get_local()
-            yvals = yvalsv.vector().get_local()
+        xvals = xvalsv.vector().get_local()
+        yvals = yvalsv.vector().get_local()
 
-            pvals = np.concatenate([pvals, pjvals])  #Merge two arrays for pressure values
-            xvals = np.concatenate([xvals, xqals])   #Merge two arrays for x-coordinate values
-            yvals = np.concatenate([yvals, yqals])   #Merge two arrays for y-coordinate values
+        pvals = np.concatenate([pvals, pjvals])  #Merge two arrays for pressure values
+        xvals = np.concatenate([xvals, xqals])   #Merge two arrays for x-coordinate values
+        yvals = np.concatenate([yvals, yqals])   #Merge two arrays for y-coordinate values
 
-            xx = np.linspace(-1.5*r_b,1.5*r_b, num=250)
-            yy = np.linspace(-1.5*r_b,1.5*r_b, num=250)
-            XX, YY = np.meshgrid(xx,yy)   # (x,y) coordinate data formatted so that it can be used by plt.contour()
-            pp = mlab.griddata(xvals, yvals, pvals, xx, yy, interp='linear') # u(x,y) data so that it can be used by 
+        xx = np.linspace(-1.5*r_b,1.5*r_b, num=250)
+        yy = np.linspace(-1.5*r_b,1.5*r_b, num=250)
+        XX, YY = np.meshgrid(xx,yy)   # (x,y) coordinate data formatted so that it can be used by plt.contour()
+        pp = mlab.griddata(xvals, yvals, pvals, xx, yy, interp='linear') # u(x,y) data so that it can be used by 
 
-            plt.contour(XX, YY, pp, 30)
-            plt.colorbar()
-            plt.title('Pressure')   # PRESSURE CONTOUR PLOT
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/Pressure Contours Re="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
-            plt.clf()
-
-
-            #Plot TEMPERATURE Contours USING MATPLOTLIB
-            # Scalar Function code
-
-            #Set Values for inner domain as ZERO
+        plt.contour(XX, YY, pp, 30)
+        plt.colorbar()
+        plt.title('Pressure')   # PRESSURE CONTOUR PLOT
+        plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/Pressure Contours Re="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+        plt.clf()
 
 
-            Tj=Expression('0', degree=1) #Expression for the 'pressure' in the domian
-            Tjq=interpolate(Tj, Q1)
-            Tjvals=Tjq.vector().get_local()
+        #Plot TEMPERATURE Contours USING MATPLOTLIB
+        # Scalar Function code
 
-            Tvals = theta0_Q.vector().get_local() # GET SOLUTION T= T(x,y) list
-            Tvals = np.concatenate([Tvals, Tjvals])  #Merge two arrays for Temperature values
-
-            TT = mlab.griddata(xvals, yvals, Tvals, xx, yy, interp='linear') # u(x,y) data so that it can be used by 
-
-            plt.contour(XX, YY, TT, 30)
-            plt.colorbar()
-            plt.title('Temperature')   # TEMPERATURE CONTOUR PLOT
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/Temperature Contours Re="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
-            plt.clf()
+        #Set Values for inner domain as ZERO
 
 
+        Tj=Expression('0', degree=1) #Expression for the 'pressure' in the domian
+        Tjq=interpolate(Tj, Q1)
+        Tjvals=Tjq.vector().get_local()
 
-            # Plot Velocity Field Contours (MATPLOTLIB)
+        Tvals = theta0_Q.vector().get_local() # GET SOLUTION T= T(x,y) list
+        Tvals = np.concatenate([Tvals, Tjvals])  #Merge two arrays for Temperature values
 
-            # Set Velocity on the bearing to zero
-            Q1=FunctionSpace(meshc, "CG", 1)
-            V1=VectorFunctionSpace(meshc, "CG", 2)
+        TT = mlab.griddata(xvals, yvals, Tvals, xx, yy, interp='linear') # u(x,y) data so that it can be used by 
 
-            vj=Expression(('0.','0.'), degree=2) #Expression for the 'pressure' in the domian
-            vjq=interpolate(vj, V1)
-
-            ujvals = project(vjq[0], Q1) # Project u_x onto (Q1)
-            vjvals = project(vjq[1], Q1) # Project u_y onto (Q1)
-            ujvals = ujvals.vector().get_local()
-            vjvals = vjvals.vector().get_local()
+        plt.contour(XX, YY, TT, 30)
+        plt.colorbar()
+        plt.title('Temperature')   # TEMPERATURE CONTOUR PLOT
+        plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/Temperature Contours Re="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+        plt.clf()
 
 
 
-            xy = Expression(('x[0]','x[1]'), degree=2)  #GET MESH COORDINATES LIST
+        # Plot Velocity Field Contours (MATPLOTLIB)
 
-            xyvalsv = interpolate(xy, V1)
+        # Set Velocity on the bearing to zero
+        Q1=FunctionSpace(meshc, "CG", 1)
+        V1=VectorFunctionSpace(meshc, "CG", 2)
 
-            xvalsj = project(xyvalsv[0], Q1) # Project x-coordinate onto (Q1)
-            yvalsj = project(xyvalsv[1], Q1) # Project y-coordinate onto (Q1)
-            xvalsj = xvalsj.vector().get_local() # Get x-coordinate array (Q1)
-            yvalsj = yvalsj.vector().get_local() # Get y-coordinate array (Q1)
+        vj=Expression(('0.','0.'), degree=2) #Expression for the 'pressure' in the domian
+        vjq=interpolate(vj, V1)
 
-
-            xyvalsvj = interpolate(xy, V)
-
-            xvalsv = project(xyvalsvj[0], Q) # Project x-coordinate onto (Q)
-            yvalsv = project(xyvalsvj[1], Q) # Project y-coordinate onto (Q)
-            xvals = xvalsv.vector().get_local() # Get x-coordinate array (Q)
-            yvals = yvalsv.vector().get_local() # Get y-coordinate array (Q)
-
-            #Plot Velocity Streamlines USING MATPLOTLIB
-            u1_q = project(u1[0],Q)
-            uvals = u1_q.vector().get_local()
-            v1_q = project(u1[1],Q)
-            vvals = v1_q.vector().get_local()
-
-                # Interpoltate velocity field data onto matlab grid
-            #uu = mlab.griddata(xvals, yvals, uvals, xx, yy, interp='nn') 
-            #vv = mlab.griddata(xvals, yvals, vvals, xx, yy, interp='nn') 
-         
-
-            #Merge arrays
-            uvals = np.concatenate([uvals, ujvals])  #Merge two arrays for velocity values
-            vvals = np.concatenate([vvals, vjvals])  #Merge two arrays for velocity values
-            xvals = np.concatenate([xvals, xvalsj])   #Merge two arrays for x-coordinate values
-            yvals = np.concatenate([yvals, yvalsj])   #Merge two arrays for y-coordinate values
+        ujvals = project(vjq[0], Q1) # Project u_x onto (Q1)
+        vjvals = project(vjq[1], Q1) # Project u_y onto (Q1)
+        ujvals = ujvals.vector().get_local()
+        vjvals = vjvals.vector().get_local()
 
 
-            uu = mlab.griddata(xvals, yvals, uvals, xx, yy, interp='linear') 
-            vv = mlab.griddata(xvals, yvals, vvals, xx, yy, interp='linear') 
 
-            #Determine Speed 
-            speed = np.sqrt(uu*uu+ vv*vv)
+        xy = Expression(('x[0]','x[1]'), degree=2)  #GET MESH COORDINATES LIST
 
-            plot3 = plt.figure()
-            plt.streamplot(XX, YY, uu, vv,  
-                           density=5,              
-                           color=speed/speed.max(),  
-                           cmap=cm.gnuplot,                         # colour map
-                           linewidth=0.5*speed/speed.max()+0.5)       # line thickness
-            plt.colorbar()
-            plt.title('Isostreams')
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/Velocity Contours Re="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")   
-            plt.clf()                                                                    # display the plot
+        xyvalsv = interpolate(xy, V1)
+
+        xvalsj = project(xyvalsv[0], Q1) # Project x-coordinate onto (Q1)
+        yvalsj = project(xyvalsv[1], Q1) # Project y-coordinate onto (Q1)
+        xvalsj = xvalsj.vector().get_local() # Get x-coordinate array (Q1)
+        yvalsj = yvalsj.vector().get_local() # Get y-coordinate array (Q1)
+
+
+        xyvalsvj = interpolate(xy, V)
+
+        xvalsv = project(xyvalsvj[0], Q) # Project x-coordinate onto (Q)
+        yvalsv = project(xyvalsvj[1], Q) # Project y-coordinate onto (Q)
+        xvals = xvalsv.vector().get_local() # Get x-coordinate array (Q)
+        yvals = yvalsv.vector().get_local() # Get y-coordinate array (Q)
+
+        #Plot Velocity Streamlines USING MATPLOTLIB
+        u1_q = project(u1[0],Q)
+        uvals = u1_q.vector().get_local()
+        v1_q = project(u1[1],Q)
+        vvals = v1_q.vector().get_local()
+
+            # Interpoltate velocity field data onto matlab grid
+        #uu = mlab.griddata(xvals, yvals, uvals, xx, yy, interp='nn') 
+        #vv = mlab.griddata(xvals, yvals, vvals, xx, yy, interp='nn') 
+     
+
+        #Merge arrays
+        uvals = np.concatenate([uvals, ujvals])  #Merge two arrays for velocity values
+        vvals = np.concatenate([vvals, vjvals])  #Merge two arrays for velocity values
+        xvals = np.concatenate([xvals, xvalsj])   #Merge two arrays for x-coordinate values
+        yvals = np.concatenate([yvals, yvalsj])   #Merge two arrays for y-coordinate values
+
+
+        uu = mlab.griddata(xvals, yvals, uvals, xx, yy, interp='linear') 
+        vv = mlab.griddata(xvals, yvals, vvals, xx, yy, interp='linear') 
+
+        #Determine Speed 
+        speed = np.sqrt(uu*uu+ vv*vv)
+
+        plot3 = plt.figure()
+        plt.streamplot(XX, YY, uu, vv,  
+                       density=5,              
+                       color=speed/speed.max(),  
+                       cmap=cm.gnuplot,                         # colour map
+                       linewidth=0.5*speed/speed.max()+0.5)       # line thickness
+        plt.colorbar()
+        plt.title('Isostreams')
+        plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/Velocity Contours Re="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")   
+        plt.clf()                                                                    # display the plot
 
 
 
         plt.close()
+        """
 
 
-        if dt < tol:
-           primary_loop = loopend + 1
-           break
+    if dt < tol:
+       primary_loop = loopend + 1
+       break
 
 
 
+    if primary_loop == loopend:
+        secondary_loop +=1
+        update_progress("Simulation"+str(secondary_loop), 1)
+        primary_loop = 0
+        #adaptive_loop = False
+        #err_count = 0
+        x1=list()
+        x2=list()
+        x3=list()
+        x4=list()
+        x5=list()
+        y=list()
+        z=list()
+        zz=list()
+        zzz=list()
+        zl=list()
+        ek1=list()
+        ek2=list()
+        ek3=list()
+        ek4=list()
+        ee1=list()
+        ee2=list()
+        ee3=list()
+        ee4=list()
+        ek5=list()
+        ee5=list() 
+        y1 = list()
+        zx1 = list()
+        z1 = list()
+        y2 = list()
+        zx2 = list()
+        z2 = list()
+        y3 = list()
+        zx3 = list()
+        z3 = list()
+        y4 = list()
+        zx4 = list()
+        z4 = list()
+        y5 = list()
+        zx5 = list()
+        z5 = list()
 
-    if adaptive_loop == 0: 
+    if secondary_loop == 5:
+        quit()
+
+
+    if adaptive_loop == False: 
+
+        adaptive_loop = True
         # Calculate Stress Residual 
         F1R = Fdef(u1, tau1)  
         F1R_vec = as_vector([F1R[0,0], F1R[1,0], F1R[1,1]])
@@ -1386,26 +1184,26 @@ while primary_loop < loopend:
         kapp = project(res_test, Qt) # Error Function
         norm_kapp = normalize_solution(kapp) # normalised error function
 
-        ratio = 0.15/(1*err_count + 1.0) # Proportion of cells that we want to refine
+        ratio = 0.2/(1*err_count + 1.0) # Proportion of cells that we want to refine
         tau_average = project((tau1_vec[0]+tau1_vec[1]+tau1_vec[2])/3.0 , Qt)
-        error_rat = project(kapp/(tau_average + 0.000001) , Qt)
+        error_rat = project(kapp/(tau_average + DOLFIN_EPS) , Qt)
         error_rat = absolute(error_rat)
 
-        adaptive_loop = 1 
+ 
 
-        if error_rat.vector().get_local().max() > 0.01 and err_count < 1:
+        if error_rat.vector().get_local().max() > 0.01 and err_count < max_refine:
            err_count+=1
            mesh = adaptive_refinement(mesh, norm_kapp, ratio)
            #mplot(mesh)
            #plt.savefig("adaptive-mesh.png")
            #plt.clf()
-           adaptive_loop = 0
+           adaptive_loop = False
            conv_fail = 0
 
         # Reset Parameters
         corr = 1    
         primary_loop = 0
-        dt = mesh.hmin()**2
+        dt = 10*mesh.hmin()**2
         Tf = T_f
         th = 1.0
         x1=list()
@@ -1444,51 +1242,6 @@ while primary_loop < loopend:
         zx5 = list()
         z5 = list()
 
-
-        if primary_loop == loopend:
-            secondary_loop +=1
-            update_progress("Simulation"+str(secondary_loop), 1)
-            primary_loop = 0
-            adaptive_loop = 0
-            err_count = 0
-            x1=list()
-            x2=list()
-            x3=list()
-            x4=list()
-            x5=list()
-            y=list()
-            z=list()
-            zz=list()
-            zzz=list()
-            zl=list()
-            ek1=list()
-            ek2=list()
-            ek3=list()
-            ek4=list()
-            ee1=list()
-            ee2=list()
-            ee3=list()
-            ee4=list()
-            ek5=list()
-            ee5=list() 
-            y1 = list()
-            zx1 = list()
-            z1 = list()
-            y2 = list()
-            zx2 = list()
-            z2 = list()
-            y3 = list()
-            zx3 = list()
-            z3 = list()
-            y4 = list()
-            zx4 = list()
-            z4 = list()
-            y5 = list()
-            zx5 = list()
-            z5 = list()
-
-        if secondary_loop == 5:
-            quit()
 
 
 
