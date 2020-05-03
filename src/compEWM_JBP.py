@@ -17,13 +17,11 @@ def update_progress(job_title, progress):
 update_progress("Simulation", 0)
 
 # SET TIMESTEPPING PARAMTER
-dt = 5*mesh.hmin()**2  #Time Stepping  
 T_f = 8.0
 Tf = T_f
 
 # SET LOOPING PARAMETER
-loopend = 5
-total_loops = (loopend*(Tf/dt))
+loopend = 4
 j = 0                              
 jj = 1
 jjj = 0
@@ -131,7 +129,8 @@ while j < loopend:
     meshc= generate_mesh(c3, 15)
 
     # Timestepping
-    dt = 10*mesh.hmin()**2
+    dt = 0.002#10*mesh.hmin()**2
+    total_loops = (loopend*(Tf/dt))
 
     # Reset Mesh Dependent Functions
     h = CellDiameter(mesh)
@@ -280,34 +279,41 @@ while j < loopend:
     bcT = [temp0]
     bctau = []
 
-    
-
-    # Comparing different WEISSENBERG Numbers (We=0.1,0.2,0.3,0.4,0.5) at Re=__
-    betav = 0.5
-    Ma = 0.05
-    if j==1:
-       betav = 1.0 - DOLFIN_EPS
-       We = 0.001
-    elif j==2:
-       We = 0.1
-    elif j==3:
-       We = 0.5
-    elif j==4:
-       We = 0.75
-    elif j==5:
-       We = 1.0
-
-    #Second loop comparing Reynolds numbers
+    # Set parameters for secondary loop -----------------------------------------------------------------------
 
     if jjj == 0:
+       betav = 0.5
        Re = 25
        Ma = 0.05
     if jjj == 1:
+       betav = 0.5
        Re = 50
-       Ma = 0.1
+       Ma = 0.05
     if jjj == 2:
+       betav = 0.5
        Re = 100
-       Ma = 0.1
+       Ma = 0.05
+    
+
+    # SET FLUID PARAMETERS for primary loop ---------------------------------------------------------------------------
+    # May 2020
+
+    if j==1:
+       Re = 100
+       We = 0.0001 # Effectively zero
+    elif j==2:
+       We = 0.1
+    elif j==3:
+       We = 1.0
+    elif j==4:
+       Re = 25
+       We = 1.0
+    #elif j==5:
+    #   We = 1.0
+
+    #Second loop comparing Reynolds numbers
+
+
     
 
     # Adaptive Mesh Refinement Step
@@ -315,7 +321,7 @@ while j < loopend:
        We = 1.0
        betav = 0.5
        Tf = 1.5*(1 + 2*err_count*0.25)
-       dt = mesh.hmin()**2 
+       dt = 0.001#mesh.hmin()**2 
        th = 0.0
 
     Rey = Re*conv
@@ -368,8 +374,8 @@ while j < loopend:
     print('Degrees of Freedom = %d ' % dof)
     print( 'Number of Cells:', mesh.num_cells())
     print( 'Number of Vertices:', mesh.num_vertices())
-    print( 'Minimum Cell Diamter:', mesh.hmin())
-    print( 'Maximum Cell Diamter:', mesh.hmax())
+    #print( 'Minimum Cell Diamter:', mesh.hmin())
+    #print( 'Maximum Cell Diamter:', mesh.hmax())
     print( '############# Stabilisation Parameters ############')
     print( 'DEVSS Momentum Term:', th)
 
@@ -466,7 +472,7 @@ while j < loopend:
     # Time-stepping
     t = 0.0
     iter = 0            # iteration counter
-    maxiter = 10000000
+    maxiter = 10
     if jj==0:
        maxiter = 25
     frames = int((Tf/dt)/1000)
@@ -707,7 +713,7 @@ while j < loopend:
 
 
         innerforcex = inner(Constant((1.0, 0.0)), omegaf0)*ds(0)
-        innerforcey = -inner(Constant((0.0, 1.0)), omegaf0)*ds(0)
+        innerforcey = inner(Constant((0.0, -1.0)), omegaf0)*ds(0)
 
         innertorque = -inner(n, sigma0)*ds(0)
         outertorque = -inner(n, sigma1)*ds(1)
@@ -719,7 +725,7 @@ while j < loopend:
             ek1.append(E_k)
             ee1.append(E_e)
             y1.append(assemble(innertorque))
-            zx1.append(0.0)     #assemble(innerforcex)
+            zx1.append(assemble(innerforcex))     # 0.0
             z1.append(assemble(innerforcey))
         if j==2:
             x2.append(t)
@@ -816,52 +822,74 @@ while j < loopend:
 
 
 
-        # Plot Torque/Load for different Wessinberg Numbers
+        # Plot Torque/Load and energy metrics
         if max(norm(tau1_vec.vector(),'linf'),norm(p1.vector(), 'linf'),norm(w1.vector(), 'linf')) < 10E6 and j==loopend or j==1:
             # Plot Torque Data
             plt.figure(0)
-            plt.plot(x1, y1, 'r-', label=r'$We=0$')
-            plt.plot(x2, y2, 'b-', label=r'$We=0.1$')
-            plt.plot(x3, y3, 'c-', label=r'$We=0.5$')
-            plt.plot(x4, y4, 'm-', label=r'$We=0.75$')
-            plt.plot(x5, y5, 'g-', label=r'$We=1.0$')
+            plt.plot(x1, y1, 'r--', label=r'$We=0$, $Re=100$')
+            plt.plot(x2, y2, 'b--', label=r'$We=0.1$, $Re=100$')
+            plt.plot(x3, y3, 'c--', label=r'$We=1.0$, $Re=100$')
+            plt.plot(x4, y4, 'm--', label=r'$We=1.0$, $Re=25$')
             plt.legend(loc='best')
             plt.xlabel('$t$', fontsize=16)
             plt.ylabel('$C$', fontsize=16)
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Torque_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Torque_We="+str(We)+"Re="+str(Re)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
             plt.clf()
+            # Horizontal load
             plt.figure(1)
-            plt.plot(x1, zx1, 'r-', label=r'$We=0$')
-            plt.plot(x2, zx2, 'b-', label=r'$We=0.1$')
-            plt.plot(x3, zx3, 'c-', label=r'$We=0.5$')
-            plt.plot(x4, zx4, 'm-', label=r'$We=0.75$')
-            plt.plot(x5, zx5, 'g-', label=r'$We=1.0$')
+            plt.plot(x1, zx1, 'r--', label=r'$We=0$, $Re=100$')
+            plt.plot(x2, zx2, 'b--', label=r'$We=0.1$, $Re=100$')
+            plt.plot(x3, zx3, 'c--', label=r'$We=1.0$, $Re=100$')
+            plt.plot(x4, zx4, 'm--', label=r'$We=1.0$, $Re=25$')
             plt.legend(loc='best')
             plt.xlabel('$t$', fontsize=16)
             plt.ylabel('$F_x$', fontsize=16)
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Horizontal_Load_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Horizontal_Load_We="+str(We)+"Re="+str(Re)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
             plt.clf()
+            # Vertical load
             plt.figure(2)
-            plt.plot(x1, z1, 'r-', label=r'$We=0$')
-            plt.plot(x2, z2, 'b-', label=r'$We=0.1$')
-            plt.plot(x3, z3, 'c-', label=r'$We=0.5$')
-            plt.plot(x4, z4, 'm-', label=r'$We=0.75$')
-            plt.plot(x5, z5, 'g-', label=r'$We=1.0$')
+            plt.plot(x1, z1, 'r--', label=r'$We=0$, $Re=100$')
+            plt.plot(x2, z2, 'b--', label=r'$We=0.1$, $Re=100$')
+            plt.plot(x3, z3, 'c--', label=r'$We=1.0$, $Re=100$')
+            plt.plot(x4, z4, 'm--', label=r'$We=1.0$, $Re=25$')
+            plt.plot(x5, z5, 'g--', label=r'$We=1.0$')
             plt.legend(loc='best')
             plt.xlabel('$t$', fontsize=16)
             plt.ylabel('$F_y$', fontsize=16)
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Vertical_Load_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"al="+str(al)+"t="+str(t)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Vertical_Load_We="+str(We)+"Re="+str(Re)+"b="+str(betav)+"Ma="+str(Ma)+"al="+str(al)+"t="+str(t)+".png")
             plt.clf()
+            # Force evolution
             plt.figure(3)
-            plt.plot(zx1, z1, 'r-', label=r'$We=0$')
-            plt.plot(zx2, z2, 'b-', label=r'$We=0.1$')
-            plt.plot(zx3, z3, 'c-', label=r'$We=0.5$')
-            plt.plot(zx4, z4, 'm-', label=r'$We=0.75$')
-            plt.plot(zx5, z5, 'g-', label=r'$We=1.0$')
+            plt.plot(zx1, z1, 'r--', label=r'$We=0$, $Re=100$')
+            plt.plot(zx2, z2, 'b--', label=r'$We=0.1$, $Re=100$')
+            plt.plot(zx3, z3, 'c--', label=r'$We=1.0$, $Re=100$$')
+            plt.plot(zx4, z4, 'm--', label=r'$We=1.0$, $Re=25$')
             plt.legend(loc='best')
             plt.xlabel('$F_x$', fontsize=16)
             plt.ylabel('$F_y$', fontsize=16)
-            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Force_Evolution_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Force_Evolution_We="+str(We)+"Re="+str(Re)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+            plt.clf()
+            # Kinetic Energy
+            plt.figure(4)
+            plt.plot(x1, ek1, 'r--', label=r'$We=0$, $Re=100$')
+            plt.plot(x2, ek2, 'b--', label=r'$We=0.1$, $Re=100$')
+            plt.plot(x3, ek3, 'c--', label=r'$We=1.0$, $Re=100$$')
+            plt.plot(x4, ek4, 'm--', label=r'$We=1.0$, $Re=25$')
+            plt.legend(loc='best')
+            plt.xlabel('$t$', fontsize=16)
+            plt.ylabel('$E_{k}$', fontsize=16)
+            plt.savefig("Compressible Viscoelastic Flow Results/Energy/KineticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+            plt.clf()
+            # Elastic Energy
+            plt.figure(5)
+            plt.plot(x1, ee1, 'r--', label=r'$We=0$, $Re=100$')
+            plt.plot(x2, ee2, 'b--', label=r'$We=0.1$, $Re=100$')
+            plt.plot(x3, ee3, 'c--', label=r'$We=1.0$, $Re=100$$')
+            plt.plot(x4, ee4, 'm--', label=r'$We=1.0$, $Re=25$')
+            plt.legend(loc='best')
+            plt.xlabel('$t$', fontsize=16)
+            plt.ylabel('$E_{e}$', fontsize=16)
+            plt.savefig("Compressible Viscoelastic Flow Results/Energy/ElasticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
             plt.clf()
 
         # Plot Torque/Load for Incompresssible Newtonian vd Viscoelastic
@@ -900,7 +928,7 @@ while j < loopend:
             plt.savefig("Compressible Viscoelastic Flow Results/Load-Torque/Force_Evolution_We="+str(We)+"Re="+str(Rey)+"b="+str(betav)+"Ma="+str(Ma)+"al="+str(al)+"t="+str(t)+".png")
             plt.clf()"""
 
-        # Plot Torque/Load for different Wessinberg Numbers
+        # Plot Torque/Load for different values of alpha
         """if max(norm(tau1_vec.vector(),'linf'),norm(p1.vector(), 'linf'),norm(w1.vector(), 'linf')) < 10E6 and j==5 or j==3 or j==1:
             # Plot Torque Data
             plt.figure(0)
@@ -1085,32 +1113,6 @@ while j < loopend:
             plt.savefig("Compressible Viscoelastic Flow Results/Energy/ElasticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
             plt.clf()"""
 
-            #Plot Kinetic and elasic Energies for different Weissenberg numbers at Re FIXED 
-        if max(norm(tau1_vec.vector(),'linf'),norm(w1.vector(), 'linf')) < 10E6 and j==loopend or j==1:
-            # Kinetic Energy
-            plt.figure(0)
-            plt.plot(x1, ek1, 'r-', label=r'$We=0$')
-            plt.plot(x2, ek2, 'b-', label=r'$We=0.1$')
-            plt.plot(x3, ek3, 'c-', label=r'$We=0.5$')
-            plt.plot(x4, ek4, 'm-', label=r'$We=0.75$')
-            plt.plot(x5, ek5, 'g-', label=r'$We=1.0$')
-            plt.legend(loc='best')
-            plt.xlabel('$t$', fontsize=16)
-            plt.ylabel('$E_{k}$', fontsize=16)
-            plt.savefig("Compressible Viscoelastic Flow Results/Energy/KineticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-            plt.clf()
-            # Elastic Energy
-            plt.figure(1)
-            plt.plot(x1, ee1, 'r-', label=r'$We=0$')
-            plt.plot(x2, ee2, 'b-', label=r'$We=0.1$')
-            plt.plot(x3, ee3, 'c-', label=r'$We=0.5$')
-            plt.plot(x4, ee4, 'm-', label=r'$We=0.75$')
-            plt.plot(x5, ee5, 'g-', label=r'$We=1.0$')
-            plt.legend(loc='best')
-            plt.xlabel('$t$', fontsize=16)
-            plt.ylabel('$E_{e}$', fontsize=16)
-            plt.savefig("Compressible Viscoelastic Flow Results/Energy/ElasticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-            plt.clf()
 
             #Plot Kinetic and elasic Energies for different Thermal Expansion Coefficients 
         """if max(norm(tau1_vec.vector(),'linf'),norm(w1.vector(), 'linf')) < 10E6 and j==5 or j==3 or j==1:
@@ -1160,17 +1162,7 @@ while j < loopend:
             plt.savefig("Compressible Viscoelastic Flow Results/Energy/ElasticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
             plt.clf()"""
 
-        """fv = File("Paraview_Results/Velocity Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/velocity "+str(t)+".pvd")
-        fv_x = File("Paraview_Results/Velocity Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/u_x "+str(t)+".pvd")
-        fv_y = File("Paraview_Results/Velocity Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/u_y "+str(t)+".pvd")
-        fmom = File("Paraview_Results/Velocity Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/mom "+str(t)+".pvd")
-        fp = File("Paraview_Results/Pressure Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/pressure "+str(t)+".pvd")
-        ftau_xx = File("Paraview_Results/Stress Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/tua_xx "+str(t)+".pvd")
-        ftau_xy = File("Paraview_Results/Stress Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/tau_xy "+str(t)+".pvd")
-        ftau_yy = File("Paraview_Results/Stress Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/tau_yy "+str(t)+".pvd")
-        f_N1 = File("Paraview_Results/Stress Results Re="+str(Re*conv)+"We="+str(We)+"Ma="+str(Ma)+"b="+str(betav)+"DEVSS"+str(th)+"/N1"+str(t)+".pvd")"""
-
-
+        # (x,y) plot of pressure, stress, momenetum etc
         if max(norm(tau1_vec.vector(),'linf'),norm(w1.vector(), 'linf')) < 10E6 and j==1 or j==loopend:
             # Plot Stress/Normal Stress Difference
             sigma_xx = project(sigmacon(u1, p1, tau1, betav, We)[0,0], Q)
@@ -1198,9 +1190,7 @@ while j < loopend:
             plt.colorbar()
             plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/FirstNormalStressDifferenceRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
             plt.clf()
-
-
-            # Matlab Plot of the Solution at t=Tf
+            # Plot density
             mplot(rho1)
             plt.colorbar()
             plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/DensityRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
@@ -1210,10 +1200,12 @@ while j < loopend:
             plt.colorbar()
             plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/MomentumRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
             plt.clf()
+            # Plot pressure
             mplot(p1)
             plt.colorbar()
             plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/PressureRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
             plt.clf()
+            # Plot temperature
             theta0_Q = project(theta0, Q)
             mplot(theta0_Q)
             plt.colorbar()
@@ -1236,7 +1228,7 @@ while j < loopend:
 
 
 
-
+            
             #Plot PRESSURE Contours USING MATPLOTLIB
             # Scalar Function code
 
@@ -1369,11 +1361,13 @@ while j < loopend:
             plt.colorbar()
             plt.title('Isostreams')
             plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/Velocity Contours Re="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")   
-            plt.clf()                                                                    # display the plot
+            plt.clf()
+            
+        plt.close()                                                            
+        
 
 
-
-        plt.close()
+        
 
 
         if dt < tol:
@@ -1437,7 +1431,7 @@ while j < loopend:
         norm_kapp = normalize_solution(kapp) # normalised error function
 
         ratio = 0.3/(1*err_count + 1.0) # Proportion of cells that we want to refine
-        tau_average = project((tau1_vec[0]+tau1_vec[1]+tau1_vec[2])/3.0 , Qt)
+        tau_average = project((tau1_vec[0]+tau1_vec[1]+tau1_vec[2])/3.0 , Qt) 
         error_rat = project(kapp/(tau_average + 0.000001) , Qt)
         error_rat = absolute(error_rat)
 
@@ -1459,7 +1453,7 @@ while j < loopend:
         # Reset Parameters
         corr=1    
         j = 0
-        dt = 10*mesh.hmin()**2
+        dt = 0.001#10*mesh.hmin()**2
         Tf = T_f
         th = 1.0
         x1=list()
