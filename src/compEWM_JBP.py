@@ -8,7 +8,7 @@ from JBP_base import *
 
 # Progress Bar
 def update_progress(job_title, progress):
-    length = 20 # modify this to change the length
+    length = 50 # modify this to change the length
     block = int(round(length*progress))
     msg = "\r{0}: [{1}] {2}%".format(job_title, "#"*block + "-"*(length-block), round(progress*100, 4))
     if progress >= 1: msg += " DONE\r\n"
@@ -129,7 +129,7 @@ while j < loopend:
     meshc= generate_mesh(c3, 15)
 
     # Timestepping
-    dt = 0.002#10*mesh.hmin()**2
+    dt = 0.001#10*mesh.hmin()**2
     total_loops = (loopend*(Tf/dt))
 
     # Reset Mesh Dependent Functions
@@ -283,16 +283,13 @@ while j < loopend:
 
     if jjj == 0:
        betav = 0.5
-       Re = 25
        Ma = 0.05
     if jjj == 1:
        betav = 0.5
-       Re = 50
-       Ma = 0.05
+       Ma = 0.1
     if jjj == 2:
        betav = 0.5
-       Re = 100
-       Ma = 0.05
+       Ma = 0.2
     
 
     # SET FLUID PARAMETERS for primary loop ---------------------------------------------------------------------------
@@ -300,10 +297,12 @@ while j < loopend:
 
     if j==1:
        Re = 100
-       We = 0.0001 # Effectively zero
+       We = 0.00001 # Effectively zero
     elif j==2:
+       Re = 100
        We = 0.1
     elif j==3:
+       Re = 100
        We = 1.0
     elif j==4:
        Re = 25
@@ -472,7 +471,7 @@ while j < loopend:
     # Time-stepping
     t = 0.0
     iter = 0            # iteration counter
-    maxiter = 10
+    maxiter = 100000
     if jj==0:
        maxiter = 25
     frames = int((Tf/dt)/1000)
@@ -862,7 +861,7 @@ while j < loopend:
             plt.figure(3)
             plt.plot(zx1, z1, 'r--', label=r'$We=0$, $Re=100$')
             plt.plot(zx2, z2, 'b--', label=r'$We=0.1$, $Re=100$')
-            plt.plot(zx3, z3, 'c--', label=r'$We=1.0$, $Re=100$$')
+            plt.plot(zx3, z3, 'c--', label=r'$We=1.0$, $Re=100$')
             plt.plot(zx4, z4, 'm--', label=r'$We=1.0$, $Re=25$')
             plt.legend(loc='best')
             plt.xlabel('$F_x$', fontsize=16)
@@ -873,7 +872,7 @@ while j < loopend:
             plt.figure(4)
             plt.plot(x1, ek1, 'r--', label=r'$We=0$, $Re=100$')
             plt.plot(x2, ek2, 'b--', label=r'$We=0.1$, $Re=100$')
-            plt.plot(x3, ek3, 'c--', label=r'$We=1.0$, $Re=100$$')
+            plt.plot(x3, ek3, 'c--', label=r'$We=1.0$, $Re=100$')
             plt.plot(x4, ek4, 'm--', label=r'$We=1.0$, $Re=25$')
             plt.legend(loc='best')
             plt.xlabel('$t$', fontsize=16)
@@ -884,7 +883,7 @@ while j < loopend:
             plt.figure(5)
             plt.plot(x1, ee1, 'r--', label=r'$We=0$, $Re=100$')
             plt.plot(x2, ee2, 'b--', label=r'$We=0.1$, $Re=100$')
-            plt.plot(x3, ee3, 'c--', label=r'$We=1.0$, $Re=100$$')
+            plt.plot(x3, ee3, 'c--', label=r'$We=1.0$, $Re=100$')
             plt.plot(x4, ee4, 'm--', label=r'$We=1.0$, $Re=25$')
             plt.legend(loc='best')
             plt.xlabel('$t$', fontsize=16)
@@ -1260,10 +1259,16 @@ while j < loopend:
             xvals = np.concatenate([xvals, xqals])   #Merge two arrays for x-coordinate values
             yvals = np.concatenate([yvals, yqals])   #Merge two arrays for y-coordinate values
 
+            # Create 2D array with mesh coordinate points
+            points = np.vstack((xvals, yvals)).T
+
             xx = np.linspace(-1.5*r_b,1.5*r_b, num=250)
             yy = np.linspace(-1.5*r_b,1.5*r_b, num=250)
             XX, YY = np.meshgrid(xx,yy)   # (x,y) coordinate data formatted so that it can be used by plt.contour()
-            pp = mlab.griddata(xvals, yvals, pvals, xx, yy, interp='linear') # u(x,y) data so that it can be used by 
+
+            # Pressure
+            pp = sci.griddata(points, pvals, (XX, YY), method='linear') # u(x,y) data so that it can be used by 
+            pp = np.reshape(pp, (len(xx), len(yy))) # Reshape to 2D array
 
             plt.contour(XX, YY, pp, 30)
             plt.colorbar()
@@ -1271,12 +1276,7 @@ while j < loopend:
             plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/Pressure Contours Re="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
             plt.clf()
 
-
-            #Plot TEMPERATURE Contours USING MATPLOTLIB
-            # Scalar Function code
-
-            #Set Values for inner domain as ZERO
-
+            # Temperature
 
             Tj=Expression('0', degree=1) #Expression for the 'pressure' in the domian
             Tjq=interpolate(Tj, Q1)
@@ -1285,7 +1285,8 @@ while j < loopend:
             Tvals = theta0_Q.vector().get_local() # GET SOLUTION T= T(x,y) list
             Tvals = np.concatenate([Tvals, Tjvals])  #Merge two arrays for Temperature values
 
-            TT = mlab.griddata(xvals, yvals, Tvals, xx, yy, interp='linear') # u(x,y) data so that it can be used by 
+            TT = sci.griddata(points, Tvals, (XX, YY), method='linear') # u(x,y) data so that it can be used by 
+            TT = np.reshape(TT, (len(xx), len(yy))) # Reshape to 2D array
 
             plt.contour(XX, YY, TT, 30)
             plt.colorbar()
@@ -1334,25 +1335,24 @@ while j < loopend:
             v1_q = project(u1[1],Q)
             vvals = v1_q.vector().get_local()
 
-                # Interpoltate velocity field data onto matlab grid
-            #uu = mlab.griddata(xvals, yvals, uvals, xx, yy, interp='nn') 
-            #vv = mlab.griddata(xvals, yvals, vvals, xx, yy, interp='nn') 
          
 
             #Merge arrays
             uvals = np.concatenate([uvals, ujvals])  #Merge two arrays for velocity values
             vvals = np.concatenate([vvals, vjvals])  #Merge two arrays for velocity values
+
             xvals = np.concatenate([xvals, xvalsj])   #Merge two arrays for x-coordinate values
             yvals = np.concatenate([yvals, yvalsj])   #Merge two arrays for y-coordinate values
+            points = np.vstack((xvals, yvals)).T
 
+            uu = sci.griddata(points, uvals, (XX, YY), method='linear') 
+            vv = sci.griddata(points, vvals, (XX, YY), method='linear') 
+            uu = np.reshape(uu, (len(xx), len(yy))) # Reshape to 2D array
+            vv = np.reshape(vv, (len(xx), len(yy))) # Reshape to 2D array
 
-            uu = mlab.griddata(xvals, yvals, uvals, xx, yy, interp='linear') 
-            vv = mlab.griddata(xvals, yvals, vvals, xx, yy, interp='linear') 
-
-            #Determine Speed 
             speed = np.sqrt(uu*uu+ vv*vv)
 
-            plot3 = plt.figure()
+            plt.figure()
             plt.streamplot(XX, YY, uu, vv,  
                            density=5,              
                            color=speed/speed.max(),  
@@ -1360,7 +1360,7 @@ while j < loopend:
                            linewidth=0.5*speed/speed.max()+0.5)       # line thickness
             plt.colorbar()
             plt.title('Isostreams')
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/Velocity Contours Re="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")   
+            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/Velocity Contours Re="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")   
             plt.clf()
             
         plt.close()                                                            
