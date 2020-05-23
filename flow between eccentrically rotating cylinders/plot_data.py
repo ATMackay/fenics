@@ -20,7 +20,13 @@ y_Ma005 = [0.024, 0.081, 0.122, 0.124, 0.406]
 
 
 
+y_lambda0 = [0.0149, 1.256, 3.384, 10.952, 7.854]
+y_lambda01 = [2.325, 3.640, 4.476, 15.698, 12.211]
+y_lambda015 = [4.692,  6.246, 10.608, 29.344, 21.261]
+
+
 # Plot data
+"""
 plt.figure(0)
 plt.plot(x, y_Re25 , 'o--', label=r'$Re = 25$')
 plt.plot(x, y_Re50 , 'o--', label=r'$Re = 50$')
@@ -43,5 +49,16 @@ plt.xlabel('$We$', fontsize=16)
 plt.ylabel('$\chi$', fontsize=16)
 plt.savefig("EWMStability_Ma.png")
 plt.clf()
+"""
 
+
+plt.figure(0)
+plt.plot(x, y_lambda0 , 'o--', label=r'$\lambda_D=0$')
+plt.plot(x, y_lambda01 , 'o--', label=r'$\lambda_D=0.1$')
+plt.plot(x, y_lambda015 , 'o--', label=r'$\lambda_D=0.15$')
+plt.legend(loc='best')
+plt.xlabel('$We$', fontsize=16)
+plt.ylabel('$\chi$', fontsize=16)
+plt.savefig("FENE-P-MPstability.png")
+plt.clf()
 

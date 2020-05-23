@@ -17,12 +17,12 @@ def update_progress(job_title, progress):
 update_progress("Simulation", 0)
 
 # SET TIMESTEPPING PARAMTER
-T_f = 10.0
+T_f = 20.0
 Tf = T_f
 
 # SET LOOPING PARAMETER
 loopend = 4
-j = 0                              
+j = 0                            
 jj = 1
 jjj = 0
 err_count = 0
@@ -43,7 +43,7 @@ w_j = 1.0
 
 T_0 = 300
 T_h = 350
-Di = 0.0025              # Diffusion Number
+Di = 0.005              # Diffusion Number
 Vh = 0.0000069
 Bi = 0.2
 rho_0 = 1.0
@@ -164,7 +164,6 @@ while j < loopend:
     V = FunctionSpace(mesh,V_s)
     Vd = FunctionSpace(mesh,V_d)
     Z = FunctionSpace(mesh,Z_s)
-    #Ze = FunctionSpace(mesh,Z_e)               #FIX!!!!!!!!!!!!!!!!!!!!!!!!!!!
     Zd = FunctionSpace(mesh,Z_d)
     Zc = FunctionSpace(mesh,Z_c)
     Q = FunctionSpace(mesh,Q_s)
@@ -283,7 +282,7 @@ while j < loopend:
 
     if jjj == 0:
        betav = 0.5
-       Ma = 0.05
+       Ma = 0.1
     if jjj == 1:
        betav = 0.5
        Ma = 0.1
@@ -297,13 +296,13 @@ while j < loopend:
 
     if j==1:
        Re = 100
-       We = 0.001 # Effectively zero
+       We = 1.0 # Effectively zero
     elif j==2:
        Re = 100
        We = 0.1
     elif j==3:
        Re = 100
-       We = 1.0
+       We = 0.001
     elif j==4:
        Re = 25
        We = 1.0
@@ -471,7 +470,7 @@ while j < loopend:
     # Time-stepping
     t = 0.0
     iter = 0            # iteration counter
-    maxiter = 100000
+    maxiter = 1000000
     if jj==0:
        maxiter = 25
     frames = int((Tf/dt)/1000)
@@ -877,7 +876,7 @@ while j < loopend:
             plt.legend(loc='best')
             plt.xlabel('$t$', fontsize=16)
             plt.ylabel('$E_{k}$', fontsize=16)
-            plt.savefig("Compressible Viscoelastic Flow Results/Energy/KineticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Energy/KineticEnergyWe="+str(We)+"Re="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
             plt.clf()
             # Elastic Energy
             plt.figure(5)
@@ -888,7 +887,7 @@ while j < loopend:
             plt.legend(loc='best')
             plt.xlabel('$t$', fontsize=16)
             plt.ylabel('$E_{e}$', fontsize=16)
-            plt.savefig("Compressible Viscoelastic Flow Results/Energy/ElasticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Energy/ElasticEnergyWe="+str(We)+"Re="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
             plt.clf()
 
         # Plot Torque/Load for Incompresssible Newtonian vd Viscoelastic
@@ -1162,67 +1161,67 @@ while j < loopend:
             plt.clf()"""
 
         # (x,y) plot of pressure, stress, momenetum etc
-        if max(norm(tau1_vec.vector(),'linf'),norm(w1.vector(), 'linf')) < 10E6 and j==1 or j==loopend:
+        if max(norm(tau1_vec.vector(),'linf'),norm(w1.vector(), 'linf')) < 10E6:
             # Plot Stress/Normal Stress Difference
             sigma_xx = project(sigmacon(u1, p1, tau1, betav, We)[0,0], Q)
             mplot(sigma_xx)
             plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/sigma_xxRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/sigma_xxRe="+str(Re)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
             plt.clf() 
             tau_xx=project(tau1[0,0],Q)
             mplot(tau_xx)
             plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/tau_xxRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/tau_xxRe="+str(Re)+"We="+str(We)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
             plt.clf() 
             tau_xy=project(tau1[1,0],Q)
             mplot(tau_xy)
             plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/tau_xyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/tau_xyRe="+str(Re)+"We="+str(We)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
             plt.clf() 
             tau_yy=project(tau1[1,1],Q)
             mplot(tau_yy)
             plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/tau_yyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/tau_yyRe="+str(Re)+"We="+str(We)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
             plt.clf() 
             N1=project(tau1[0,0]-tau1[1,1],Q)
             mplot(N1)
             plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/FirstNormalStressDifferenceRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/FirstNormalStressDifferenceRe="+str(Re)+"We="+str(We)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
             plt.clf()
             # Plot density
             mplot(rho1)
             plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/DensityRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/DensityRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
             plt.clf()
             mom_mag = project(rho1*magnitude(u1), Q)
             mplot(mom_mag)
             plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/MomentumRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/MomentumRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
             plt.clf()
             # Plot pressure
             mplot(p1)
             plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/PressureRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/PressureRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
             plt.clf()
             # Plot temperature
             theta0_Q = project(theta0, Q)
             mplot(theta0_Q)
             plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/TemperatureRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/TemperatureRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
             plt.clf()
             divu=project(div(u1),Q)
             mplot(divu)
             plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/CompressionRe="+str(Rey)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/CompressionRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
             plt.clf()
             mplot(psi)
             plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/stream_functionRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/stream_functionRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
             plt.clf()
             therm_visc = project(betav + (1.-betav)*phi_ewm(tau1, theta1, k_ewm, B), Q)
             mplot(therm_visc)
             plt.colorbar()
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/viscosity_functionRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
+            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/viscosity_functionRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
             plt.clf()
 
 
@@ -1347,20 +1346,26 @@ while j < loopend:
 
             uu = sci.griddata(points, uvals, (XX, YY), method='linear') 
             vv = sci.griddata(points, vvals, (XX, YY), method='linear') 
-            uu = np.reshape(uu, (len(xx), len(yy))) # Reshape to 2D array
-            vv = np.reshape(vv, (len(xx), len(yy))) # Reshape to 2D array
+
+            # Set all nan values to DOLFIN_EPS (close to zero)
+            uu = np.nan_to_num(uu, nan = 0)
+            vv = np.nan_to_num(vv, nan = 0)
+            # Reshape
+            uu = np.reshape(uu, (len(yy), len(xx))) # Reshape to 2D array
+            vv = np.reshape(vv, (len(yy), len(xx))) # Reshape to 2D array
 
             speed = np.sqrt(uu*uu+ vv*vv)
 
             plt.figure()
             plt.streamplot(XX, YY, uu, vv,  
-                           density=5,              
+                           density=4,              
                            color=speed/speed.max(),  
-                           cmap=cm.gnuplot,                         # colour map
-                           linewidth=0.5*speed/speed.max()+0.5)       # line thickness
+                           cmap=cm.gnuplot,                           # colour map
+                           linewidth=speed/speed.max()+0.5)       # line thickness
             plt.colorbar()
             plt.title('Isostreams')
-            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/Velocity Contours Re="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")   
+            plt.savefig("Compressible Viscoelastic Flow Results/Plots-Contours/Velocity Contours Re="+str(Re)+\
+                        "We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")   
             plt.clf()
             
         plt.close()                                                            

@@ -1,6 +1,6 @@
 # Git ignore file
 
-__pycache__
+__pycache__/
 *.pyc
 
 
@@ -11,3 +11,10 @@ newConformEnergy.txt
 newStability.txt
 newStream-Function.txt
 newTorque.txt
+
+EWMEnergy.txt
+EWMStability.txt
+EWMStream-Function.txt
+EWMTorque.txt
+JBP_base.py
+
