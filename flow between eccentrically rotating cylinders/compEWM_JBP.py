@@ -31,9 +31,9 @@ tol = 10E-6
 defpar = 1.0
 
 conv = 1                                      # Non-inertial Flow Parameter (Re=0)
-We = 0.25
+We = 0.75
 betav = 0.5
-Re = 100
+Re = 100.
 Ma = Re*0.0001
 c0 = 1.0/Ma
 

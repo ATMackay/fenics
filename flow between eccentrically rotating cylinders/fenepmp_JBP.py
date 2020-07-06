@@ -317,10 +317,10 @@ while j < loopend:
     # Reynolds number 
     if jjj == 0:
        Re = 50
-       We = 0.5
+       We = 0.75
        #Ma = 0.001*Re
     if jjj == 1:
-       We = 0.5
+       We = 0.75
        Re = 100
        #Ma = 0.001*Re
     if jjj == 2:
@@ -338,7 +338,6 @@ while j < loopend:
     elif j==3:
        Ma = 0.1 
        lambda_d = 0.15
-
 
 
 
