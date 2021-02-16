@@ -17,7 +17,7 @@ def update_progress(job_title, progress):
 update_progress("Simulation", 0)
 
 # SET TIMESTEPPING PARAMTER
-T_f = 20.0
+T_f = 30.0
 Tf = T_f
 
 # SET LOOPING PARAMETER
@@ -296,10 +296,10 @@ while j < loopend:
 
     if j==1:
        Re = 100
-       We = 1.0 # Effectively zero
+       We = 0.1 
     elif j==2:
        Re = 100
-       We = 0.1
+       We = 0.5
     elif j==3:
        Re = 100
        We = 0.001

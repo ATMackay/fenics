@@ -18,7 +18,7 @@ def update_progress(job_title, progress):
 update_progress("Simulation", 0)
 
 
-T_f = 10.0
+T_f = 30.0
 Tf = T_f
 loopend = 3
 j = 0

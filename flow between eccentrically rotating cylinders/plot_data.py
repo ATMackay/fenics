@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-x = [0, 0.1, 0.25, 0.5, 0.75, 1.0]
+x = [0, 0.1, 0.25, 0.5, 1.0]
 
 # Stability
 
@@ -13,9 +13,9 @@ y_Re100 = [0.019, 0.054, 0.094, 0.181, 0.366]
 y_Re200 = [0.019, 0.1354, 0.376, 0.437, 0.552]
 
 
-y_Ma0001 = [0.019, 0.059, 0.096, 0.182, 0.372]
+y_Ma0001 = [0.019, 0.059, 0.094, 0.183, 0.366]
 y_Ma001 = [0.019, 0.059, 0.097, 0.186, 0.372]
-y_Ma005 = [0.024, 0.081, 0.122, 0.124, 0.406]
+y_Ma005 = [0.024, 0.081, 0.122, 0.214, 0.406]
 #y_Ma01 = [0.019, 0.081, 0.144, 0.413]
 
 
@@ -37,7 +37,7 @@ plt.xlabel('$We$', fontsize=16)
 plt.ylabel('$\chi$', fontsize=16)
 plt.savefig("EWMStability_Re.png")
 plt.clf()
-
+"""
 
 plt.figure(1)
 plt.plot(x, y_Ma0001 , 'o--', label=r'$Ma=0.001$')
@@ -49,9 +49,9 @@ plt.xlabel('$We$', fontsize=16)
 plt.ylabel('$\chi$', fontsize=16)
 plt.savefig("EWMStability_Ma.png")
 plt.clf()
+
+
 """
-
-
 plt.figure(0)
 plt.plot(x, y_lambda0 , 'o--', label=r'$\lambda_D=0$')
 plt.plot(x, y_lambda01 , 'o--', label=r'$\lambda_D=0.1$')
@@ -61,4 +61,4 @@ plt.xlabel('$We$', fontsize=16)
 plt.ylabel('$\chi$', fontsize=16)
 plt.savefig("FENE-P-MPstability.png")
 plt.clf()
-
+"""
