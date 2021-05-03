@@ -19,28 +19,7 @@ def update_progress(job_title, progress):
 
 
 
-def JBP_mesh(mesh_res, x_1, x_2, y_1, y_2, r_a, r_b):
-    c0 = Circle(Point(0.0,0.0), r_a, 256) 
-    c1 = Circle(Point(x_1,y_1), r_a, 256)
-    c2 = Circle(Point(x_2,y_2), r_b, 256)
 
-    ex = x_2 - x_1
-    ey = y_2 - y_1
-    ec = np.sqrt(ex**2+ey**2)
-    c = r_b - r_a
-    ecc = (ec)/(c)
-
-    if c <= 0.0:
-       print("ERROR! Journal radius greater than bearing radius")
-       quit()
-
-    # Create mesh
-    cyl0 = c2 - c0
-    cyl = c2 - c1
-
-    mesh = generate_mesh(cyl, mesh_res)
-
-    return mesh
 
 def taylor_galerkin_solver():
     # Main time-marching scheme here
@@ -50,8 +29,8 @@ def taylor_galerkin_solver():
 
 def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     """
-    This function solves time-dependent Navier-Stokes Equations that govern 
-    Non-Newtonian and non-isothermal flow between eccentrically rotating cylinders
+    This function solves time-dependent Navier-Stokes Equations governining 
+    Non-Newtonian, non-isothermal flow between eccentrically rotating cylinders
     and saves solution data along with plots to directories plots/ and results/
     """
 
@@ -96,14 +75,41 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
     # FEM Solution Convergence/Energy Plot
     # TODO FIX this so that fewer arrays are being defined
-    x1 = x2 = x3 = x4 = x5 = list()
-    y = y1 = y2 = y3 = y4 = y5 = list()
-    z = z1 = z2 = z3 = z4 = z5 = list()
-    zx1 = zx2 = zx3 = zx4 = zx5 = list()
-    z = zz = zzz = zl = list()
-    ek1 = ek2 = ek3 = ek4 = ek5 = list()
-    ee1 = ee2 = ee3 = ee4 = ee5 = list()
-
+    x1=list()
+    x2=list()
+    x3=list()
+    x4=list()
+    x5=list()
+    y=list()
+    z=list()
+    zz=list()
+    zzz=list()
+    zl=list()
+    ek1=list()
+    ek2=list()
+    ek3=list()
+    ek4=list()
+    ee1=list()
+    ee2=list()
+    ee3=list()
+    ee4=list()
+    ek5=list()
+    ee5=list()
+    y1 = list()
+    zx1 = list()
+    z1 = list()
+    y2 = list()
+    zx2 = list()
+    z2 = list()
+    y3 = list()
+    zx3 = list()
+    z3 = list()
+    y4 = list()
+    zx4 = list()
+    z4 = list()
+    y5 = list()
+    zx5 = list()
+    z5 = list()
     while j < loopend:
         j+=1
         t=0.0
@@ -211,20 +217,9 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         bcT = [temp0]
         bctau = []
 
-        # Set parameters for secondary loop -----------------------------------------------------------------------
-
-        if jjj == 0:
-            betav = 0.5
-            Ma = 0.01
-        if jjj == 1:
-            betav = 0.5
-            Ma = 0.05
-        if jjj == 2:
-            betav = 0.5
-            Ma = 0.1
         
 
-        # SET FLUID PARAMETERS for primary loop ---------------------------------------------------------------------------
+        # READ IN FLUID PARAMETERS FROM CSV ---------------------------------------------------------------------------
         # March 2021 
 
         # Import csv using csv
@@ -236,6 +231,12 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             ma_row = my_csv_data[2]
 
 
+        # Set parameters for secondary loop -----------------------------------------------------------------------
+
+        betav = 0.5
+        Ma = float(ma_row[jjj+1])
+
+        # Set parameters for primary loop ------------------------------------------------        
         if j==1:
             Re = float(re_row[1])
             We = float(we_row[1])
@@ -260,7 +261,6 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             th = 0.0
 
         conv = 1                # Non-inertial Flow Parameter (Re=0)
-        Rey = Re*conv
 
         # Print Parameters of flow simulation
         t = 0.0                  #Time
@@ -273,7 +273,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         ec = np.sqrt((x_2 - x_1)**2 + (y_2 - y_1)**2)
         c = r_b - r_a
         ecc = ec/c
-        print('Eccentricity (m):' , )
+        print('Eccentricity (m):' , ecc)
         print('Radius DIfference (m):', r_b - r_a)
         print('Eccentricity Ratio:',ecc)
 
@@ -395,9 +395,10 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         # Time-stepping
         t = 0.0
         iter = 0            # iteration counter
-        maxiter = 10000000
         if mesh_refinement == True:
             maxiter = 25
+        else :
+            maxiter = 100000000
         while t < Tf + DOLFIN_EPS and iter < maxiter:
             flow_description = "eccentric cyclinder flow: loop: " +str(jjj) + ", Re: "+str(Re)+", We: "+str(We)+", Ma: "+str(Ma)
             update_progress(flow_description, t/Tf) # Update progress bar
@@ -758,6 +759,15 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 
         if mesh_refinement == False:
+            # Save FE solutions in HDF5 format
+            ufile = "hd5/velocity-solution, Re="+str(Re)+", We="+str(We)+", Ma="+str(Ma)+", t="+str(t)+".h5"
+            save_solution(u1, ufile)
+            pfile = "hd5/pressure-solution, Re="+str(Re)+", We="+str(We)+", Ma="+str(Ma)+", t="+str(t)+".h5"
+            save_solution(p1, pfile)
+            rhofile = "hd5/density-solution, Re="+str(Re)+", We="+str(We)+", Ma="+str(Ma)+", t="+str(t)+".h5"
+            save_solution(rho1, rhofile)
+            thetafile = "hd5/temperature-solution, Re="+str(Re)+", We="+str(We)+", Ma="+str(Ma)+", t="+str(t)+".h5"
+            save_solution(T1, thetafile)
             # Minimum of stream function (Eye of Rotation)
             u1 = project(u1, V)
             psi = comp_stream_function(rho1, u1)
@@ -1093,5 +1103,5 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("parameters.csv", mesh_resolution=35, simulation_time=40, mesh_refinement=True)
+    main("parameters-ewm.csv", mesh_resolution=40, simulation_time=40, mesh_refinement=False)
 

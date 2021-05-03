@@ -16,7 +16,8 @@ import matplotlib.tri as tri
 import scipy.interpolate as sci
 #import matplotlib.mlab as mlab
 
-
+# Print log messages only from the root process in parallel
+parameters["std_out_all_processes"] = False;
 
 # MATPLOTLIB CONTOUR FUNCTIONS
 def mesh2triang(mesh):
@@ -39,12 +40,48 @@ def mplot(obj):                     # Function Plot
     elif isinstance(obj, Mesh):
         if (obj.geometry().dim() != 2):
             raise(AttributeError)
-        plt.triplot(mesh2triang(obj), color='k', linewidth = 0.25)
-        plt.axis('off')
+        plt.triplot(mesh2triang(obj), color='k', linewidth = 0.15)
+        plt.axis('on')
 
-# Print log messages only from the root process in parallel
-parameters["std_out_all_processes"] = False;
+def JBP_mesh(mesh_res, x_1, x_2, y_1, y_2, r_a, r_b):
+    c0 = Circle(Point(0.0,0.0), r_a, 256) 
+    c1 = Circle(Point(x_1,y_1), r_a, 256)
+    c2 = Circle(Point(x_2,y_2), r_b, 256)
 
+    ex = x_2 - x_1
+    ey = y_2 - y_1
+    ec = np.sqrt(ex**2+ey**2)
+    c = r_b - r_a
+    ecc = (ec)/(c)
+
+    if c <= 0.0:
+       print("ERROR! Journal radius greater than bearing radius")
+       quit()
+
+    # Create mesh
+    cyl0 = c2 - c0
+    cyl = c2 - c1
+
+    mesh = generate_mesh(cyl, mesh_res)
+
+    return mesh
+
+
+def save_solution(u,filename):
+    # Save solution to some file
+    # Write `u` to file 'filename':
+    fFile = HDF5File(MPI.comm_world,filename,"w")
+    fFile.write(u,"/f")
+    fFile.close()
+
+
+def load_solution(filename,function_space):
+    # Read the contents of the file back into a new function, `u`:
+    u = Function(function_space)
+    fFile = HDF5File(MPI.comm_world,filename,"r")
+    fFile.read(u,"/f")
+    fFile.close()
+    return u
 
 # ADAPTIVE MESH REFINEMENT (METHOD 2) "MESH"
 

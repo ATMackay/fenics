@@ -8,4 +8,6 @@ __pycache__/
 
 *.txt
 *.png
-
+*.eps
+hd5/
+hd5/*
