@@ -236,56 +236,6 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         bctau = []
 
 
-
-        # Comparing different Mach Numbers (We=0.1,0.2,0.3,0.4,0.5) at Re=0, We=0.1
-        """if j==1:
-            Ma = 0.0005
-        elif j==2:
-            Ma = 0.001
-        elif j==3:
-            Ma = 0.01"""
-
-
-        # Comparing different WEISSENBERG Numbers (We=0.1,0.2,0.3,0.4,0.5) at Re=__
-        """betav=0.5
-        if j==1:
-        betav = 1.0 - DOLFIN_EPS
-        We = 0.001
-        elif j==2:
-        We = 0.1
-        elif j==3:
-        We = 0.25
-        elif j==4:
-        We = 0.5
-        elif j==5:
-        We = 0.75
-        elif j==6:
-        We = 1.0"""
-
-        # Incompressible Newtonian vs Compressible Viscoelastic
-        """betav=0.5
-        Ma = 0.05 
-        Re = 50
-        if j==1:
-        betav = 1.0 - DOLFIN_EPS
-        We = 0.00001
-        Ma = DOLFIN_EPS
-        elif j==2:
-        We = 0.5
-        Re = 50"""
-
-        # Set parameters for secondary loop -----------------------------------------------------------------------
-
-        if jjj == 0:
-            betav = 0.5
-            Ma = 0.01
-        if jjj == 1:
-            betav = 0.5
-            Ma = 0.05
-        if jjj == 2:
-            betav = 0.5
-            Ma = 0.1
-
        # SET FLUID PARAMETERS for primary loop ---------------------------------------------------------------------------
         # March 2021 
 
@@ -763,13 +713,13 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
         if mesh_refinement == False:
             # Save FE solutions in HDF5 format
-            ufile = "hd5/velocity-solution, Re="+str(Re)+", We="+str(We)+", Ma="+str(Ma)+", t="+str(t)+".h5"
+            ufile = "hd5/fenep-mp-velocity-solution, Re="+str(Re)+", We="+str(We)+", Ma="+str(Ma)+", t="+str(t)+".h5"
             save_solution(u1, ufile)
-            pfile = "hd5/pressure-solution, Re="+str(Re)+", We="+str(We)+", Ma="+str(Ma)+", t="+str(t)+".h5"
+            pfile = "hd5/fenep-mp-pressure-solution, Re="+str(Re)+", We="+str(We)+", Ma="+str(Ma)+", t="+str(t)+".h5"
             save_solution(p1, pfile)
-            rhofile = "hd5/density-solution, Re="+str(Re)+", We="+str(We)+", Ma="+str(Ma)+", t="+str(t)+".h5"
+            rhofile = "hd5/fenep-mp-density-solution, Re="+str(Re)+", We="+str(We)+", Ma="+str(Ma)+", t="+str(t)+".h5"
             save_solution(rho1, rhofile)
-            thetafile = "hd5/temperature-solution, Re="+str(Re)+", We="+str(We)+", Ma="+str(Ma)+", t="+str(t)+".h5"
+            thetafile = "hd5/fenep-mp-temperature-solution, Re="+str(Re)+", We="+str(We)+", Ma="+str(Ma)+", t="+str(t)+".h5"
             save_solution(T1, thetafile)
             # Minimum of stream function (Eye of Rotation)
             u1 = project(u1, V)
@@ -840,7 +790,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.figure(3)
                 plt.plot(zx1, z1, 'r--', label=r'$\lambda_D=0$ (FENE-P)')
                 plt.plot(zx2, z2, 'b--', label=r'$\lambda_D=0.05$')
-                plt.plot(zx3, z4, 'b--', label=r'$\lambda_D=0.1$')
+                plt.plot(zx3, z3, 'b--', label=r'$\lambda_D=0.1$')
                 plt.plot(zx4, z4, 'c--', label=r'$\lambda_D=0.15$')
                 plt.legend(loc='best')
                 plt.xlabel('$F_x$', fontsize=16)
