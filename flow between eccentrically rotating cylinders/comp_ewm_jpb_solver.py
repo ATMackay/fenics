@@ -1,4 +1,29 @@
 """
+MIT License
+
+Copyright (c) 2020 Alexander Mackay
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+
+"""
 Flow Between Eccentrically Rotating Cylinders - Alex Mackay 2018
 This Python module contains functions for computing Non Newtonian flow between rotating cylinders using the finite element method.
 ...
@@ -806,9 +831,9 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             if max(norm(tau1_vec.vector(),'linf'),norm(p1.vector(), 'linf'),norm(w1.vector(), 'linf')) < 10E6 and j==loopend or j==1:
                 # Plot Torque Data
                 plt.figure(0)
-                plt.plot(x1, y1, 'r--', label=r'$We=0$, $Re=100$')
-                plt.plot(x2, y2, 'b--', label=r'$We=0.1$, $Re=100$')
-                plt.plot(x3, y3, 'c--', label=r'$We=1.0$, $Re=100$')
+                plt.plot(x1, y1, 'r--', label=r'$We=0$, $Re=50$')
+                plt.plot(x2, y2, 'b--', label=r'$We=0.1$, $Re=50$')
+                plt.plot(x3, y3, 'c--', label=r'$We=1.0$, $Re=50$')
                 plt.plot(x4, y4, 'm--', label=r'$We=1.0$, $Re=25$')
                 plt.legend(loc='best')
                 plt.xlabel('$t$', fontsize=16)
@@ -817,9 +842,9 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.clf()
                 # Horizontal load
                 plt.figure(1)
-                plt.plot(x1, zx1, 'r--', label=r'$We=0$, $Re=100$')
-                plt.plot(x2, zx2, 'b--', label=r'$We=0.1$, $Re=100$')
-                plt.plot(x3, zx3, 'c--', label=r'$We=1.0$, $Re=100$')
+                plt.plot(x1, zx1, 'r--', label=r'$We=0$, $Re=50$')
+                plt.plot(x2, zx2, 'b--', label=r'$We=0.1$, $Re=50$')
+                plt.plot(x3, zx3, 'c--', label=r'$We=1.0$, $Re=50$')
                 plt.plot(x4, zx4, 'm--', label=r'$We=1.0$, $Re=25$')
                 plt.legend(loc='best')
                 plt.xlabel('$t$', fontsize=16)
@@ -828,11 +853,10 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.clf()
                 # Vertical load
                 plt.figure(2)
-                plt.plot(x1, z1, 'r--', label=r'$We=0$, $Re=100$')
-                plt.plot(x2, z2, 'b--', label=r'$We=0.1$, $Re=100$')
-                plt.plot(x3, z3, 'c--', label=r'$We=1.0$, $Re=100$')
+                plt.plot(x1, z1, 'r--', label=r'$We=0$, $Re=50$')
+                plt.plot(x2, z2, 'b--', label=r'$We=0.1$, $Re=50$')
+                plt.plot(x3, z3, 'c--', label=r'$We=1.0$, $Re=50$')
                 plt.plot(x4, z4, 'm--', label=r'$We=1.0$, $Re=25$')
-                plt.plot(x5, z5, 'g--', label=r'$We=1.0$')
                 plt.legend(loc='best')
                 plt.xlabel('$t$', fontsize=16)
                 plt.ylabel('$F_y$', fontsize=16)
@@ -840,9 +864,9 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.clf()
                 # Force evolution
                 plt.figure(3)
-                plt.plot(zx1, z1, 'r--', label=r'$We=0$, $Re=100$')
-                plt.plot(zx2, z2, 'b--', label=r'$We=0.1$, $Re=100$')
-                plt.plot(zx3, z3, 'c--', label=r'$We=1.0$, $Re=100$')
+                plt.plot(zx1, z1, 'r--', label=r'$We=0$, $Re=50$')
+                plt.plot(zx2, z2, 'b--', label=r'$We=0.1$, $Re=50$')
+                plt.plot(zx3, z3, 'c--', label=r'$We=1.0$, $Re=50$')
                 plt.plot(zx4, z4, 'm--', label=r'$We=1.0$, $Re=25$')
                 plt.legend(loc='best')
                 plt.xlabel('$F_x$', fontsize=16)
@@ -851,9 +875,9 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.clf()
                 # Kinetic Energy
                 plt.figure(4)
-                plt.plot(x1, ek1, 'r--', label=r'$We=0$, $Re=100$')
-                plt.plot(x2, ek2, 'b--', label=r'$We=0.1$, $Re=100$')
-                plt.plot(x3, ek3, 'c--', label=r'$We=1.0$, $Re=100$')
+                plt.plot(x1, ek1, 'r--', label=r'$We=0$, $Re=50$')
+                plt.plot(x2, ek2, 'b--', label=r'$We=0.1$, $Re=50$')
+                plt.plot(x3, ek3, 'c--', label=r'$We=1.0$, $Re=50$')
                 plt.plot(x4, ek4, 'm--', label=r'$We=1.0$, $Re=25$')
                 plt.legend(loc='best')
                 plt.xlabel('$t$', fontsize=16)
@@ -862,9 +886,9 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.clf()
                 # Elastic Energy
                 plt.figure(5)
-                plt.plot(x1, ee1, 'r--', label=r'$We=0$, $Re=100$')
-                plt.plot(x2, ee2, 'b--', label=r'$We=0.1$, $Re=100$')
-                plt.plot(x3, ee3, 'c--', label=r'$We=1.0$, $Re=100$')
+                plt.plot(x1, ee1, 'r--', label=r'$We=0$, $Re=50$')
+                plt.plot(x2, ee2, 'b--', label=r'$We=0.1$, $Re=50$')
+                plt.plot(x3, ee3, 'c--', label=r'$We=1.0$, $Re=50$')
                 plt.plot(x4, ee4, 'm--', label=r'$We=1.0$, $Re=25$')
                 plt.legend(loc='best')
                 plt.xlabel('$t$', fontsize=16)
@@ -935,6 +959,10 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.colorbar()
                 plt.savefig("plots/contours/viscosity_functionRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"k="+str(k_ewm)+"t="+str(t)+".png")
                 plt.clf()
+                mplot(gamma)
+                plt.colorbar()
+                plt.savefig("plots/contours/shear_rateRe="+str(Re)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+                plt.clf() 
 
 
 
@@ -1103,5 +1131,5 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("parameters-ewm.csv", mesh_resolution=40, simulation_time=40, mesh_refinement=False)
+    main("parameters-ewm.csv", mesh_resolution=40, simulation_time=15, mesh_refinement=False)
 

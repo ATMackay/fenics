@@ -1,4 +1,28 @@
 """
+MIT License
+
+Copyright (c) 2020 Alexander Mackay
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+"""
 Flow Between Eccentrically Rotating Cylinders - Alex Mackay 2018
 This Python module contains functions for computing FENE-P-MP flow between rotating cylinders using the finite element method.
 ...
@@ -268,9 +292,9 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         Ma = float(ma_row[jjj+1])
 
         # Set parameters for primary loop ------------------------------------------------
-        Re = float(re_row[1])
-        We = float(we_row[3])
-        lambda_d = float(lambda_row[j])
+        Re = float(re_row[2])
+        We = float(we_row[j])
+        lambda_d = float(lambda_row[1])
 
 
 
@@ -756,20 +780,28 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             if max(norm(tau1_vec.vector(),'linf'),norm(p1.vector(), 'linf'),norm(w1.vector(), 'linf')) < 10E6:
                 # Plot Torque Data
                 plt.figure(0)
-                plt.plot(x1, y1, 'r--', label=r'$\lambda_D=0$ (FENE-P)')
-                plt.plot(x2, y2, 'b--', label=r'$\lambda_D=0.05$')
-                plt.plot(x3, y3, 'b--', label=r'$\lambda_D=0.1$')
-                plt.plot(x4, y4, 'c--', label=r'$\lambda_D=0.15$')
+                plt.plot(x1, y1, 'r--', label=r'$We=0$, $Re=50$')
+                plt.plot(x2, y2, 'b--', label=r'$We=0.1$, $Re=50$')
+                plt.plot(x3, y3, 'c--', label=r'$We=0.5$, $Re=50$')
+                plt.plot(x4, y4, 'm--', label=r'$We=1.0$, $Re=50$')
+                #plt.plot(x1, y1, 'r--', label=r'$\lambda_D=0$ (FENE-P)')
+                #plt.plot(x2, y2, 'b--', label=r'$\lambda_D=0.05$')
+                #plt.plot(x3, y3, 'b--', label=r'$\lambda_D=0.1$')
+                #plt.plot(x4, y4, 'c--', label=r'$\lambda_D=0.15$')
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
                 plt.ylabel('$C$')
                 plt.savefig("plots/fenep-mp/newTorque_We="+str(We)+"Re="+str(Re)+"b="+str(betav)+"Ma="+str(Ma)+"ecc="+str(ecc)+"L="+str(b)+"t="+str(t)+".png")
                 plt.clf()
                 plt.figure(1)
-                plt.plot(x1, zx1, 'r--', label=r'$\lambda_D=0$ (FENE-P)')
-                plt.plot(x2, zx2, 'b--', label=r'$\lambda_D=0.05$')
-                plt.plot(x3, zx3, 'b--', label=r'$\lambda_D=0.1$')
-                plt.plot(x4, zx4, 'c--', label=r'$\lambda_D=0.15$')
+                plt.plot(x1, zx1, 'r--', label=r'$We=0$, $Re=50$')
+                plt.plot(x2, zx2, 'b--', label=r'$We=0.1$, $Re=50$')
+                plt.plot(x3, zx3, 'c--', label=r'$We=0.5$, $Re=50$')
+                plt.plot(x4, zx4, 'm--', label=r'$We=1.0$, $Re=50$')
+                #plt.plot(x1, zx1, 'r--', label=r'$\lambda_D=0$ (FENE-P)')
+                #plt.plot(x2, zx2, 'b--', label=r'$\lambda_D=0.05$')
+                #plt.plot(x3, zx3, 'b--', label=r'$\lambda_D=0.1$')
+                #plt.plot(x4, zx4, 'c--', label=r'$\lambda_D=0.15$')
                 plt.legend(loc='best')
                 plt.xlabel('$t$', fontsize=16)
                 plt.ylabel('$F_x$', fontsize=16)
@@ -777,10 +809,14 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                             +"b="+str(betav)+"Ma="+str(Ma)+"L="+str(b)+"t="+str(t)+".png")
                 plt.clf()
                 plt.figure(2)
-                plt.plot(x1, z1, 'r--', label=r'$\lambda_D=0$ (FENE-P)')
-                plt.plot(x2, z2, 'b--', label=r'$\lambda_D=0.05$')
-                plt.plot(x3, z3, 'b--', label=r'$\lambda_D=0.1$')
-                plt.plot(x4, z4, 'c--', label=r'$\lambda_D=0.15$')
+                plt.plot(x1, z1, 'r--', label=r'$We=0$, $Re=50$')
+                plt.plot(x2, z2, 'b--', label=r'$We=0.1$, $Re=50$')
+                plt.plot(x3, z3, 'c--', label=r'$We=0.5$, $Re=50$')
+                plt.plot(x4, z4, 'm--', label=r'$We=1.0$, $Re=50$')
+                #plt.plot(x1, z1, 'r--', label=r'$\lambda_D=0$ (FENE-P)')
+                #plt.plot(x2, z2, 'b--', label=r'$\lambda_D=0.05$')
+                #plt.plot(x3, z3, 'b--', label=r'$\lambda_D=0.1$')
+                #plt.plot(x4, z4, 'c--', label=r'$\lambda_D=0.15$')
                 plt.legend(loc='best')
                 plt.xlabel('$t$', fontsize=16)
                 plt.ylabel('$F_y$', fontsize=16)
@@ -788,10 +824,14 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                             +"b="+str(betav)+"Ma="+str(Ma)+"L="+str(b)+"t="+str(t)+".png")
                 plt.clf()
                 plt.figure(3)
-                plt.plot(zx1, z1, 'r--', label=r'$\lambda_D=0$ (FENE-P)')
-                plt.plot(zx2, z2, 'b--', label=r'$\lambda_D=0.05$')
-                plt.plot(zx3, z3, 'b--', label=r'$\lambda_D=0.1$')
-                plt.plot(zx4, z4, 'c--', label=r'$\lambda_D=0.15$')
+                plt.plot(zx1, z1, 'r--', label=r'$We=0$, $Re=50$')
+                plt.plot(zx2, z2, 'b--', label=r'$We=0.1$, $Re=50$')
+                plt.plot(zx3, z3, 'c--', label=r'$We=0.5$, $Re=50$')
+                plt.plot(zx4, z4, 'm--', label=r'$We=1.0$, $Re=50$')
+                #plt.plot(zx1, z1, 'r--', label=r'$\lambda_D=0$ (FENE-P)')
+                #plt.plot(zx2, z2, 'b--', label=r'$\lambda_D=0.05$')
+                #plt.plot(zx3, z3, 'b--', label=r'$\lambda_D=0.1$')
+                #plt.plot(zx4, z4, 'c--', label=r'$\lambda_D=0.15$')
                 plt.legend(loc='best')
                 plt.xlabel('$F_x$', fontsize=16)
                 plt.ylabel('$F_y$', fontsize=16)
@@ -883,6 +923,11 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.savefig("plots/fenep-mp/newstream_functionRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+\
                             "lambda="+str(lambda_d)+"L="+str(b)+"t="+str(t)+".png")
                 plt.clf()
+                plt.figure(14)
+                mplot(gamma)
+                plt.colorbar()
+                plt.savefig("plots/contours/newshear_rateRe="+str(Re)+"Tf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+                plt.clf() 
 
 
                 
@@ -1052,5 +1097,5 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("parameters-fenep-mp.csv", mesh_resolution=40, simulation_time=35, mesh_refinement=False)
+    main("parameters-fenep-mp.csv", mesh_resolution=45, simulation_time=15, mesh_refinement=False)
 
