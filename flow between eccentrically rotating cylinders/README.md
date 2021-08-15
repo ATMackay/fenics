@@ -1,4 +1,4 @@
-# Flow Between Eccentrically Rotating Cylinders - Alex Mackay 2018
+# Flow Between Eccentrically Rotating Cylinders - Alex Mackay 2021
 
 Python modules for computing non Newtonian flow between rotating cylinders using the finite element method.
 
