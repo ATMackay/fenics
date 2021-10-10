@@ -25,7 +25,7 @@ SOFTWARE.
 
 """
 Flow Between Eccentrically Rotating Cylinders - Alex Mackay 2018
-This Python module contains functions for computing Non Newtonian flow between rotating cylinders using the finite element method.
+This Python module contains functions for computing non Newtonian flow between rotating cylinders using the finite element method.
 ...
 
 """
@@ -106,10 +106,6 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     x4=list()
     x5=list()
     y=list()
-    z=list()
-    zz=list()
-    zzz=list()
-    zl=list()
     ek1=list()
     ek2=list()
     ek3=list()

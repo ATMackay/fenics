@@ -1,0 +1,11 @@
+# Git ignore file
+
+__pycache__/
+*.pyc
+
+
+# Ignore txt and png files 
+
+*.txt
+*.png
+*.eps

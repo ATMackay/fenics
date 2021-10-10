@@ -160,7 +160,6 @@ def  tgrad (w):
     w_grad = grad(w)
 
     tran_w_grad = w_grad.T
-    #tran_w_grad = w_grad.transpose()
 
     return  tran_w_grad
 
@@ -415,7 +414,7 @@ def ramp_function(t):
     return f
 
 
-# Rehapes 3-valued vector elements as 2x2 matrices
+# Reshapes 3-valued vector elements as 2x2 matrices
 def reshape_elements(D0_vec, D12_vec, Ds_vec, D1_vec, tau0_vec, tau12_vec, tau1_vec):
     D0 = as_matrix([[D0_vec[0], D0_vec[1]],
                     [D0_vec[1], D0_vec[2]]])        #DEVSS STABILISATION
