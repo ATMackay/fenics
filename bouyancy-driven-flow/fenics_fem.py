@@ -127,6 +127,27 @@ def comp_stream_function(rho, u):
 
     return psi
 
+def shear_rate(u):
+    '''Compute shear rate of given 2-d velocity vector.'''
+    V = u.function_space().sub(0).collapse()
+
+    if V.mesh().topology().dim() != 2:
+        raise ValueError("Only stream function in 2D can be computed.")
+
+    psi = TrialFunction(V)
+    phi = TestFunction(V)
+
+    a = inner(grad(psi), grad(phi))*dx
+    gamma = grad(u) + tgrad(u) 
+    g = inner(0.5*gamma, gamma)
+    L = inner(g, phi)*dx
+    bc = DirichletBC(V, Constant(0.), DomainBoundary())
+
+    A, b = assemble_system(a, L, bc)
+    psi = Function(V)
+    solve(A, psi.vector(), b)
+
+    return psi
 
 def min_location(u):
 
@@ -417,3 +438,20 @@ def function_spaces(mesh, order):
     Qt = FunctionSpace(mesh, "DG", order-2)
     Qr = FunctionSpace(mesh,Q_s)
     return W, V, Vd, Z, Zd, Zc, Q, Qt, Qr
+
+"""
+def LPSL_Stress_Stabilisation(We, c2 u_n1, tau, tau_n1, h, Zd, Zc, Qt, Rt):
+    I_vec = Expression(('1.0','0.0','1.0'), degree=2)   
+        # Update Stabilisation (Copy and Paste Stabilisation Technique from above)
+    F1R = Fdefcom(u1, tau1)  #Compute the residual in the STRESS EQUATION
+    F1R_vec = as_vector([F1R[0,0], F1R[1,0], F1R[1,1]])
+    Dcomp1_vec = as_vector([Dcomp(u1)[0,0], Dcomp(u1)[1,0], Dcomp(u1)[1,1]])
+    restau0 = We/dt*(tau1_vec-tau0_vec) + We*F1R_vec + tau1_vec - I_vec
+    res_test = project(restau0, Zd)
+    res_orth = project(restau0-res_test, Zc)                                
+    res_orth_norm_sq = project(inner(res_orth,res_orth), Qt)     # Project residual norm onto discontinuous space
+    res_orth_norm = np.power(res_orth_norm_sq, 0.5)
+    kapp = project(res_orth_norm, Qt)
+    LPSl_stress = inner(kapp*h*c1*grad(tau),grad(Rt))*dx + inner(kapp*h*c2*div(tau),div(Rt))*dx  # Stress Stabilisation
+    return LPSl_stress
+"""

@@ -331,8 +331,6 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         print('Degrees of Freedom = %d ' % dof)
         print( 'Number of Cells:', mesh.num_cells())
         print( 'Number of Vertices:', mesh.num_vertices())
-        #print( 'Minimum Cell Diamter:', mesh.hmin())
-        #print( 'Maximum Cell Diamter:', mesh.hmax())
         print( '############# Stabilisation Parameters ############')
         print( 'DEVSS Momentum Term:', th)
 

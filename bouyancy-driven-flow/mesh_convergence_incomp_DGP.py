@@ -534,7 +534,7 @@ while j < loopend:
 
 
 
-    # Dirichlet Boundary Conditions  (LID DRIVEN CAVITY)
+    # Dirichlet Boundary Conditions  (Bouyancy driven flow)
     noslip0  = DirichletBC(W.sub(0), Constant((0.0, 0.0)), no_slip)  # No Slip boundary conditions on the left wall
     noslip1 = DirichletBC(W.sub(0), Constant((0.0, 0.0)), left)  # No Slip boundary conditions on the left wall
     noslip2 = DirichletBC(W.sub(0), Constant((0.0, 0.0)), right)  # No Slip boundary conditions on the left wall
@@ -545,7 +545,7 @@ while j < loopend:
     #Collect Boundary Conditions
     bcu = [noslip0, noslip1, noslip2, noslip3]
     bcp = []
-    bcT = [temp_left, temp_right]    #temp0, temp2
+    bcT = [temp_left, temp_right] 
     bctau = []
 
 
