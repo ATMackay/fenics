@@ -36,34 +36,30 @@ def mplot(obj):                     # Function Plot
         plt.triplot(mesh2triang(obj), color='k')
 
 # Skew Mapping EXPONENTIAL
-N=4.0
+
 def expskewcavity(x,y):
+    N=4.0
     xi = 0.5*(1+np.tanh(2*N*(x-0.5)))
     ups= 0.5*(1+np.tanh(2*N*(y-0.5)))
     return(xi,ups)
 
-pi=3.14159265359
+
 def skewcavity(x,y):
+    pi=3.14159265359
     xi = 0.5*(1-np.cos(x*pi))**1
     ups =0.5*(1-np.cos(y*pi))**1
     return(xi,ups)
 
-B=1     # Characteristic Length
-L=1
 
-def DGP_Mesh(mm):
 
+def DGP_Mesh(mm, B, L):
     # Define Geometry
-    B=1
-    L=1
     x0 = 0
     y0 = 0
     x1 = B
     y1 = L
 
     # Mesh refinement comparison Loop
-
-     
     nx=mm*B
     ny=mm*L
 
@@ -77,11 +73,7 @@ def DGP_Mesh(mm):
     mesh0=generate_mesh(u_rec, mm)
 
 
-
-    #SKEW MESH FUNCTION
-
     # MESH CONSTRUCTION CODE
-
     nv= base_mesh.num_vertices()
     nc= base_mesh.num_cells()
     coorX = base_mesh.coordinates()[:,0]
@@ -112,6 +104,8 @@ def DGP_Mesh(mm):
         editor.add_vertex(i, r[i], l[i])
     for i in range(nc):
         editor.add_cell(i, cells0[i], cells1[i], cells2[i])
+
+
     editor.close()
 
     return mesh1

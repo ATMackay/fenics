@@ -3,15 +3,18 @@
 from decimal import *
 from dolfin import *
 from mshr import *
-from math import pi, sin, cos, sqrt, fabs
+from math import pi, sin, cos, sqrt, fabs, tanh
 import numpy as np
 from matplotlib.pyplot import cm
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.tri as tri
 import matplotlib.mlab as mlab
-import time 
+import time, sys 
+import scipy.interpolate as sci
 
+## Constants
+pi=3.14159265359
 
 # Progress Bar
 def update_progress(job_title, progress):
@@ -27,8 +30,7 @@ def mesh2triang(mesh):
     xy = mesh.coordinates()
     return tri.Triangulation(xy[:, 0], xy[:, 1], mesh.cells()) # Mesh Diagram
 
-def mplot(obj): 
-    """Plots DOLFIN functions/meshes using matplotlib"""                    # Function Plot
+def mplot(obj):                     # Function Plot
     plt.gca().set_aspect('equal')
     if isinstance(obj, Function):
         mesh = obj.function_space().mesh()
@@ -40,27 +42,33 @@ def mplot(obj):
         else:
             C = obj.compute_vertex_values(mesh)
             plt.tripcolor(mesh2triang(mesh), C, shading='gouraud')
+        plt.axis('off')
     elif isinstance(obj, Mesh):
         if (obj.geometry().dim() != 2):
             raise(AttributeError)
-        plt.triplot(mesh2triang(obj), color='k')
-
+        plt.triplot(mesh2triang(obj), color='k', linewidth = 0.15)
+        plt.axis('on')
 
 def  tgrad (w):
     """ Returns  transpose  gradient """
-    return  transpose(grad(w))
+    w_grad = grad(w)
+
+    tran_w_grad = w_grad.T
+
+    return  tran_w_grad
 
 def Dincomp (w):
     """ Returns 2* the  rate of  strain  tensor """
     return (grad(w) + tgrad(w))/2
+
 def Dcomp (w):
     """ Returns 2* the  rate of  strain  tensor """
-    return ((grad(w) + tgrad(w))-(2.0/3)*div(w)*Identity(len(u)))/2
+    return ((grad(w) + tgrad(w))-(2.0/3)*div(w)*Identity(len(w)))/2
 
-def sigma(u, p, Tau):
+def sigma(u, p, Tau, We, Pr, betav):
     return 2*Pr*betav*Dincomp(u) - p*Identity(len(u)) + Pr*((1-betav)/(We))*(Tau-Identity(len(u)))
 
-def sigmacom(u, p, Tau):
+def sigmacom(u, p, Tau, We, Pr, betav):
     return 2*Pr*betav*Dcomp(u) - p*Identity(len(u)) + Pr*((1-betav)/(We))*(Tau-Identity(len(u)))
 
 def Fdef(u, Tau):
@@ -77,6 +85,21 @@ def normalize_solution(u):
     u.vector()[:] = u_array
     #u.vector().set_local(u_array)  # alternative
     return u
+
+# Adaptive Mesh Refinement 
+def adaptive_refinement(mesh, kapp, ratio):
+    kapp_array = kapp.vector().get_local()
+    kapp_level = np.percentile(kapp_array, (1-ratio)*100)
+
+    cell_domains = MeshFunction("bool", mesh, 2)
+    cell_domains.set_all(False)
+    for cell in cells(mesh):
+        x = cell.midpoint()
+        if  kapp([x[0], x[1]]) > kapp_level:
+            cell_domains[cell]=True
+
+    mesh = refine(mesh, cell_domains, redistribute=True)
+    return mesh
 
 def magnitude(u):
     return np.power((u[0]*u[0]+u[1]*u[1]), 0.5)
@@ -149,13 +172,13 @@ def shear_rate(u):
 
     return psi
 
-def min_location(u):
-
+def min_location(u, mesh):
     V = u.function_space()
 
     if V.mesh().topology().dim() != 2:
        raise ValueError("Only minimum of scalar function in 2D can be computed.")
 
+    gdim = mesh.geometry().dim()
     dofs_x = V.tabulate_dof_coordinates().reshape((-1, gdim))
 
     function_array = u.vector().get_local()
@@ -198,8 +221,6 @@ def expskewcavity(x,y,N):
     return(xi,ups)
 
 # Skew Mapping
-pi=3.14159265359
-
 def skewcavity(x,y):
     xi = 0.5*(1-np.cos(x*pi))**1
     ups =0.5*(1-np.cos(y*pi))**1
@@ -211,37 +232,29 @@ def xskewcavity(x,y):
     return(xi,ups)
 
 
-def DGP_Mesh(mm):
-
+def DGP_Mesh(mm, B, L):
     # Define Geometry
-    B=1
-    L=1
     x0 = 0
     y0 = 0
     x1 = B
     y1 = L
 
     # Mesh refinement comparison Loop
-
-     
     nx=mm*B
     ny=mm*L
 
-    c = min(x1-x0,y1-y0)
+    #c = min(x1-x0,y1-y0)
     base_mesh= RectangleMesh(Point(x0,y0), Point(x1, y1), nx, ny) # Rectangular Mesh
 
 
     # Create Unstructured mesh
+    #u_rec=Rectangle(Point(0.0,0.0),Point(1.0,1.0))
+    #mesh0=generate_mesh(u_rec, mm)
 
-    u_rec=Rectangle(Point(0.0,0.0),Point(1.0,1.0))
-    mesh0=generate_mesh(u_rec, mm)
+    mesh1 = base_mesh
 
-
-
-    #SKEW MESH FUNCTION
-
+    """
     # MESH CONSTRUCTION CODE
-
     nv= base_mesh.num_vertices()
     nc= base_mesh.num_cells()
     coorX = base_mesh.coordinates()[:,0]
@@ -255,13 +268,14 @@ def DGP_Mesh(mm):
     # OLD MESH COORDINATES -> NEW MESH COORDINATES
     r=list()
     l=list()
+    x = list()
     for i in range(nv):
         r.append(xskewcavity(coorX[i], coorY[i])[0])
         l.append(xskewcavity(coorX[i], coorY[i])[1])
 
     r=np.asarray(r)
     l=np.asarray(l)
-
+    #x=np.asarray(x)
     # MESH GENERATION (Using Mesheditor)
     mesh1 = Mesh()
     editor = MeshEditor()
@@ -272,12 +286,14 @@ def DGP_Mesh(mm):
         editor.add_vertex(i, r[i], l[i])
     for i in range(nc):
         editor.add_cell(i, cells0[i], cells1[i], cells2[i])
-    editor.close()
 
+
+    editor.close()
+    """
     return mesh1
 
 
-def DGP_structured_mesh(mm):
+def DGP_structured_mesh(mm, x_0, y_0, x_1, y_1, B, L):
     nx=mm*B
     ny=mm*L
     base_mesh= RectangleMesh(Point(x_0,y_0), Point(x_1, y_1), nx, ny)

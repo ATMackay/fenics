@@ -775,9 +775,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             z = zz = zzz = zl = list()
             ek1 = ek2 = ek3 = ek4 = ek5 = list()
             ee1 = ee2 = ee3 = ee4 = ee5 = list()
-
-
-        if mesh_refinement == False:
+        else:
             # Save FE solutions in HDF5 format
             ufile = "hd5/velocity-solution, Re="+str(Re)+", We="+str(We)+", Ma="+str(Ma)+", t="+str(t)+".h5"
             save_solution(u1, ufile)
