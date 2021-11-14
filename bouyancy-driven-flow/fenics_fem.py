@@ -37,7 +37,7 @@ def mplot(obj):                     # Function Plot
         if (mesh.geometry().dim() != 2):
             raise(AttributeError)
         if obj.vector().size() == mesh.num_cells():
-            C = obj.vector().array()
+            C = obj.vector().get_local()
             plt.tripcolor(mesh2triang(mesh), C)
         else:
             C = obj.compute_vertex_values(mesh)
@@ -79,7 +79,7 @@ def Fdefcom(u, Tau):
 
 def normalize_solution(u):
     "Normalize u: return u divided by max(u)"
-    u_array = u.vector().array()
+    u_array = u.vector().get_local()
     u_max = np.max(np.abs(u_array))
     u_array /= u_max
     u.vector()[:] = u_array
@@ -189,8 +189,25 @@ def min_location(u, mesh):
 
     return min_loc
 
+def max_location(u, mesh):
+    V = u.function_space()
+    if V.mesh().topology().dim() != 2:
+       raise ValueError("Only minimum of scalar function in 2D can be computed.")
+
+    gdim = mesh.geometry().dim()
+    dofs_x = V.tabulate_dof_coordinates().reshape((-1, gdim))
+
+    function_array = u.vector().get_local()
+    maximum = max(u.vector().get_local())
+
+    max_index = np.where(function_array == maximum)
+    max_loc = dofs_x[max_index]
+
+    return max_loc
+
+
 def l2norm_solution(u):
-    u_array = u.vector().array()
+    u_array = u.vector().get_local()
     u_l2 = norm(u, 'L2')
     u_array /= u_l2
     u.vector()[:] = u_array
