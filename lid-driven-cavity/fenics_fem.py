@@ -5,13 +5,27 @@
 from decimal import *
 from dolfin import *
 from mshr import *
-from math import pi, sin, cos, sqrt, fabs
+from math import pi, sin, cos, sqrt, fabs, tanh
 import numpy as np
 from matplotlib.pyplot import cm
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.tri as tri
 import matplotlib.mlab as mlab
+import time, sys 
+import scipy.interpolate as sci
+
+## Constants
+pi=3.14159265359
+
+# Progress Bar
+def update_progress(job_title, progress):
+    length = 50 # modify this to change the length
+    block = int(round(length*progress))
+    msg = "\r{0}: [{1}] {2}%".format(job_title, "#"*block + "-"*(length-block), round(progress*100, 4))
+    if progress >= 1: msg += " DONE\r\n"
+    sys.stdout.write(msg)
+    sys.stdout.flush()
 
 # MATPLOTLIB CONTOUR FUNCTIONS
 def mesh2triang(mesh):
@@ -35,83 +49,120 @@ def mplot(obj):                     # Function Plot
             raise(AttributeError)
         plt.triplot(mesh2triang(obj), color='k')
 
-# Define Geometry
-B=1
-L=1
-x_0 = 0
-y_0 = 0
-x_1 = B
-y_1 = L
-
-# Mesh refinement comparison Loop
-
-""" mesh refinemment prescribed in code"""
-mm = 32
- 
-nx=mm*B
-ny=mm*L
-
-c = min(x_1-x_0,y_1-y_0)
-base_mesh= UnitSquareMesh(nx, ny)
-
-
-# Create Unstructured mesh
-
-u_rec = Rectangle(Point(0.0,0.0),Point(1.0,1.0))
-mesh0=generate_mesh(u_rec, mm)
-
-
-#SKEW MESH FUNCTION
-
-# MESH CONSTRUCTION CODE
-
-nv= base_mesh.num_vertices()
-nc= base_mesh.num_cells()
-coorX = base_mesh.coordinates()[:,0]
-coorY = base_mesh.coordinates()[:,1]
-cells0 = base_mesh.cells()[:,0]
-cells1 = base_mesh.cells()[:,1]
-cells2 = base_mesh.cells()[:,2]
-
-
-# Skew Mapping EXPONENTIAL
-N=4.0
-def expskewcavity(x,y):
-    xi = 0.5*(1.0+np.tanh(2*N*(x-0.5)))
-    ups= 0.5*(1.0+np.tanh(2*N*(y-0.5)))
+def expskewcavity(x,y,N):
+    """exponential Skew Mapping"""
+    xi = 0.5*(1+np.tanh(2*N*(x-0.5)))
+    ups= 0.5*(1+np.tanh(2*N*(y-0.5)))
     return(xi,ups)
 
 # Skew Mapping
-pi=3.14159265359
-
 def skewcavity(x,y):
-    xi = 0.5*(1.0-np.cos(x*pi))**1
-    ups =0.5*(1.0-np.cos(y*pi))**1
+    xi = 0.5*(1-np.cos(x*pi))**1
+    ups =0.5*(1-np.cos(y*pi))**1
     return(xi,ups)
 
-# OLD MESH COORDINATES -> NEW MESH COORDINATES
-r=list()
-l=list()
-for i in range(nv):
-    r.append(skewcavity(coorX[i], coorY[i])[0])
-    l.append(skewcavity(coorX[i], coorY[i])[1])
+def xskewcavity(x,y):
+    xi = 0.5*(1-np.cos(x*pi))**1
+    ups = y
+    return(xi,ups)
 
-r=np.asarray(r)
-l=np.asarray(l)
 
-# MESH GENERATION (Using Mesheditor)
-mesh1 = Mesh()
-editor = MeshEditor()
-editor.open(mesh1, "triangle", 2,2)
-editor.init_vertices(nv)
-editor.init_cells(nc)
-for i in range(nv):
-    editor.add_vertex(i, r[i], l[i])
-for i in range(nc):
-    editor.add_cell(i, cells0[i], cells1[i], cells2[i])
-editor.close()
+def DGP_Mesh(mm, B, L):
+    # Define Geometry
+    x0 = 0
+    y0 = 0
+    x1 = B
+    y1 = L
 
-# Mesh Refine Code (UNSTRUCTURED MESH)
+    # Mesh refinement comparison Loop
+    nx=mm*B
+    ny=mm*L
+
+    #c = min(x1-x0,y1-y0)
+    base_mesh= RectangleMesh(Point(x0,y0), Point(x1, y1), nx, ny) # Rectangular Mesh
+
+
+    # Create Unstructured mesh
+    #u_rec=Rectangle(Point(0.0,0.0),Point(1.0,1.0))
+    #mesh0=generate_mesh(u_rec, mm)
+
+    mesh1 = base_mesh
+
+    """
+    # MESH CONSTRUCTION CODE
+    nv= base_mesh.num_vertices()
+    nc= base_mesh.num_cells()
+    coorX = base_mesh.coordinates()[:,0]
+    coorY = base_mesh.coordinates()[:,1]
+    cells0 = base_mesh.cells()[:,0]
+    cells1 = base_mesh.cells()[:,1]
+    cells2 = base_mesh.cells()[:,2]
+
+
+
+    # OLD MESH COORDINATES -> NEW MESH COORDINATES
+    r=list()
+    l=list()
+    x = list()
+    for i in range(nv):
+        r.append(xskewcavity(coorX[i], coorY[i])[0])
+        l.append(xskewcavity(coorX[i], coorY[i])[1])
+
+    r=np.asarray(r)
+    l=np.asarray(l)
+    #x=np.asarray(x)
+    # MESH GENERATION (Using Mesheditor)
+    mesh1 = Mesh()
+    editor = MeshEditor()
+    editor.open(mesh1, "triangle", 2,2)
+    editor.init_vertices(nv)
+    editor.init_cells(nc)
+    for i in range(nv):
+        editor.add_vertex(i, r[i], l[i])
+    for i in range(nc):
+        editor.add_cell(i, cells0[i], cells1[i], cells2[i])
+
+
+    editor.close()
+    """
+    return mesh1
+
+def DGP_structured_mesh(mm, x_0, y_0, x_1, y_1, B, L):
+    nx=mm*B
+    ny=mm*L
+    base_mesh= RectangleMesh(Point(x_0,y_0), Point(x_1, y_1), nx, ny)
+
+    nv= base_mesh.num_vertices()
+    nc= base_mesh.num_cells()
+    coorX = base_mesh.coordinates()[:,0]
+    coorY = base_mesh.coordinates()[:,1]
+    cells0 = base_mesh.cells()[:,0]
+    cells1 = base_mesh.cells()[:,1]
+    cells2 = base_mesh.cells()[:,2]
+
+    # OLD MESH COORDINATES -> NEW MESH COORDINATES
+    r=list()
+    l=list()
+    for i in range(nv):
+      r.append(xskewcavity(coorX[i], coorY[i])[0])
+      l.append(xskewcavity(coorX[i], coorY[i])[1])
+
+      r=np.asarray(r)
+      l=np.asarray(l)
+
+    # MESH GENERATION (Using Mesheditor)
+    mesh1 = Mesh()
+    editor = MeshEditor()
+    editor.open(mesh1, "triangle", 2,2)
+    editor.init_vertices(nv)
+    editor.init_cells(nc)
+    for i in range(nv):
+        editor.add_vertex(i, r[i], l[i])
+    for i in range(nc):
+        editor.add_cell(i, cells0[i], cells1[i], cells2[i])
+    editor.close()
+    
+    return mesh1
 
 def refine_boundary(mesh, times):
     for i in range(times):
@@ -138,179 +189,110 @@ def refine_top(mesh, times):
           mesh_refine = refine(mesh, cell_domains, redistribute=True)
     return mesh_refine
 
-#plot(mesh0)
-#plot(mesh)
-#plot(mesh1,interactive=True)
-
-#mplot(mesh0)
-#plt.savefig("fine_unstructured_grid.png")
-#plt.clf() 
-#mplot(mesh0)
-#plt.savefig("fine_structured_grid.png")
-#plt.clf() 
-#mplot(mesh1)
-#plt.savefig("fine_skewed_grid.png")
-#plt.clf()
-#quit()
-
-# Choose Mesh to Use
-
-mesh = refine_top(mesh1, 1)
-
-gdim = mesh.geometry().dim() # Mesh Geometry
+def ramp_function(t):
+    f = 1.0 + tanh(8*(t-0.5))
+    return f
 
 
-#Define Boundaries 
+# Reshapes 3-valued vector elements as 2x2 matrices
+def reshape_elements(D0_vec, D12_vec, Ds_vec, D1_vec, tau0_vec, tau12_vec, tau1_vec):
+    D0 = as_matrix([[D0_vec[0], D0_vec[1]],
+                    [D0_vec[1], D0_vec[2]]])        #DEVSS STABILISATION
+    D12 = as_matrix([[D12_vec[0], D12_vec[1]],
+                    [D12_vec[1], D12_vec[2]]])
+    Ds = as_matrix([[Ds_vec[0], Ds_vec[1]],
+                    [Ds_vec[1], Ds_vec[2]]])
+    D1 = as_matrix([[D1_vec[0], D1_vec[1]],
+                    [D1_vec[1], D1_vec[2]]]) 
+    tau0 = as_matrix([[tau0_vec[0], tau0_vec[1]],
+                    [tau0_vec[1], tau0_vec[2]]])        # Stress 
+    tau12 = as_matrix([[tau12_vec[0], tau12_vec[1]],
+                    [tau12_vec[1], tau12_vec[2]]]) 
+    tau1 = as_matrix([[tau1_vec[0], tau1_vec[1]],
+                    [tau1_vec[1], tau1_vec[2]]])
+    return D0, D12, Ds, D1, tau0, tau12, tau1
 
-top_bound = 0.5*(1+tanh(N)) 
+def solution_functions(Q, W, V, Z):
+    #Solution Functions
+    rho0 = Function(Q)
+    rho12 = Function(Q)
+    rho1 = Function(Q)
+    p0 = Function(Q)       # Pressure Field t=t^n
+    p1 = Function(Q)       # Pressure Field t=t^n+1
+    T0 = Function(Q)       # Temperature Field t=t^n
+    T1 = Function(Q)       # Temperature Field t=t^n+1
+    tau0_vec = Function(Z)     # Stress Field (Vector) t=t^n
+    tau12_vec = Function(Z)    # Stress Field (Vector) t=t^n+1/2
+    tau1_vec = Function(Z)     # Stress Field (Vector) t=t^n+1
+    w0 = Function(W)
+    w12 = Function(W)
+    ws = Function(W)
+    w1 = Function(W)
+    (u0, D0_vec) = w0.split()
+    (u12, D12_vec) = w12.split()
+    (us, Ds_vec) = ws.split()
+    (u1, D1_vec) = w1.split()
+    return rho0, rho12, rho1, p0, p1, T0, T1, u0, u12, us, u1, D0_vec, D12_vec, Ds_vec, D1_vec, w0, w12, ws, w1, tau0_vec, tau12_vec, tau1_vec
 
-class No_slip(SubDomain):
-      def inside(self, x, on_boundary):
-          return True if on_boundary else False 
-                                                                          
-class Lid(SubDomain):
-      def inside(self, x, on_boundary):
-          return True if x[1] > L*(top_bound - DOLFIN_EPS) and on_boundary  else False   
+def trial_functions(Q, Z, W):
+    # Trial Functions
+    rho=TrialFunction(Q)
+    p = TrialFunction(Q)
+    T = TrialFunction(Q)
+    tau_vec = TrialFunction(Z)
+    (u, D_vec) = TrialFunctions(W)
+    D =  as_matrix([[D_vec[0], D_vec[1]],
+                    [D_vec[1], D_vec[2]]])
+    tau = as_matrix([[tau_vec[0], tau_vec[1]],
+                    [tau_vec[1], tau_vec[2]]]) 
+    return rho, p, T, tau_vec, u, D_vec, D, tau
 
-no_slip = No_slip()
-lid = Lid()
+def function_spaces(mesh, order):
+    # Discretization  parameters
 
+    V_s = VectorElement("CG", mesh.ufl_cell(), order)       # Velocity Elements
+    V_d = VectorElement("DG", mesh.ufl_cell(), order-1)
+    V_se = VectorElement("Bubble", mesh.ufl_cell(),  order+1)
+    
+    Z_c = VectorElement("CG", mesh.ufl_cell(),  order, 3)     # Stress Elements
+    Z_s = VectorElement("DG", mesh.ufl_cell(),  order-1, 3)
+    Z_se = VectorElement("Bubble", mesh.ufl_cell(),  order+1, 3)
+    Z_d = VectorElement("DG", mesh.ufl_cell(),  order-2, 3)
 
-# MARK SUBDOMAINS (Create mesh functions over the cell facets)
-sub_domains = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
-sub_domains.set_all(5)
-no_slip.mark(sub_domains, 0)
-lid.mark(sub_domains, 2)
+    Q_s = FiniteElement("CG", mesh.ufl_cell(), order-1)   # Pressure/Density Elements
+    Q_p = FiniteElement("Bubble", mesh.ufl_cell(), order+1, 3)
 
+    # Function spaces
+    W = FunctionSpace(mesh,V_s*Z_d)             # F.E. Spaces 
+    V = FunctionSpace(mesh,V_s)
+    Vd = FunctionSpace(mesh,V_d)
+    Z = FunctionSpace(mesh,Z_s)
+    Zd = FunctionSpace(mesh,Z_d)
+    Zc = FunctionSpace(mesh,Z_c)
+    Q = FunctionSpace(mesh,Q_s)
+    Qt = FunctionSpace(mesh, "DG", order-2)
+    Qr = FunctionSpace(mesh,Q_s)
+    return W, V, Vd, Z, Zd, Zc, Q, Qt, Qr
 
-#plot(sub_domains, interactive=False)        # DO NOT USE WITH RAVEN
-#quit()
-
-#Define Boundary Parts
-
-boundary_parts = FacetFunction("size_t", mesh) #MeshFunction<T>(mesh, mesh->topology().dim() - 1, value)
-no_slip.mark(boundary_parts,0)
-lid.mark(boundary_parts,1)
-ds = Measure("ds")[boundary_parts]
-
-# Define function spaces (P2-P1)
-
-# Discretization  parameters
-family = "CG"; dfamily = "DG"; rich = "Bubble"
-shape = "triangle"; order = 2
-
-# Finite ELement Spaces
-
-V_s = VectorElement(family, mesh.ufl_cell(), order)       # Velocity Elements
-V_d = VectorElement(dfamily, mesh.ufl_cell(), order-1)
-V_se = VectorElement(rich, mesh.ufl_cell(),  order+1)
- 
-Z_c = VectorElement(family, mesh.ufl_cell(),  order, 3)     # Stress Elements
-Z_s = VectorElement(dfamily, mesh.ufl_cell(),  order-1, 3)
-Z_se = VectorElement(rich, mesh.ufl_cell(),  order+1, 3)
-Z_d = VectorElement(dfamily, mesh.ufl_cell(),  order-2, 3)
-
-Q_s = FiniteElement(family, mesh.ufl_cell(), order-1)   # Pressure/Density Elements
-Q_p = FiniteElement(rich, mesh.ufl_cell(), order+1, 3)
-
-
-Z_e = Z_c + Z_se
-
-#Z_e = EnrichedElement(Z_c,Z_se)                 # Enriched Elements
-Z_e = MixedElement(Z_c,Z_se)
-V_e = EnrichedElement(V_s,V_se) 
-Q_rich = EnrichedElement(Q_s,Q_p)
-
-
-W = FunctionSpace(mesh,V_s*Z_d)             # F.E. Spaces 
-V = FunctionSpace(mesh,V_s)
-Vd = FunctionSpace(mesh,V_d)
-Z = FunctionSpace(mesh,Z_s)
-Ze = FunctionSpace(mesh,Z_e)               #FIX!!!!!!!!!!!!!!!!!!!!!!!!!!!
-Zd = FunctionSpace(mesh,Z_d)
-Zc = FunctionSpace(mesh,Z_c)
-Q = FunctionSpace(mesh,Q_s)
-Qt = FunctionSpace(mesh, "DG", order-2)
-Qr = FunctionSpace(mesh,Q_s)
-
-# Define trial and test functions [TAYLOR GALERKIN Method]
-rho=TrialFunction(Q)
-p = TrialFunction(Q)
-T = TrialFunction(Q)
-q = TestFunction(Q)
-r = TestFunction(Q)
-
-p0=Function(Q)       # Pressure Field t=t^n
-p1=Function(Q)       # Pressure Field t=t^n+1
-rho0=Function(Q)
-rho1=Function(Q)
-T0=Function(Qt)       # Temperature Field t=t^n
-T1=Function(Qt)       # Temperature Field t=t^n+1
-
-
-# Non-mixed Formulation
-#u = TestFunction(V)
-#v = TrialFunction(V)
-#u0 = Function(V)
-#u12 = Function(V)
-#us = Function(V)
-#u1 = Function(V)
-
-#D0_vec = Function(Zd)
-#D12_vec = Function(Zd)
-#Ds_vec = Function(Zd)
-#D1_vec = Function(Zd)
-
-# Mixed Finite Element FOrmulation
-(v, R_vec) = TestFunctions(W)
-(u, D_vec) = TrialFunctions(W)
-
-
-tau_vec = TrialFunction(Zc)
-Rt_vec = TestFunction(Zc)
-
-
-tau0_vec=Function(Zc)     # Stress Field (Vector) t=t^n
-tau12_vec=Function(Zc)    # Stress Field (Vector) t=t^n+1/2
-tau1_vec=Function(Zc)     # Stress Field (Vector) t=t^n+1
-
-# Used in conformation tensor only
-sig0_vec=Function(Zc)     # Stress Field (Vector) t=t^n
-sig12_vec=Function(Zc)    # Stress Field (Vector) t=t^n+1/2
-sig1_vec=Function(Zc)     # Stress Field (Vector) t=t^n+1
-
-w0= Function(W)
-w12= Function(W)
-ws= Function(W)
-w1= Function(W)
-
-(u0, D0_vec) = w0.split()
-(u12, D12_vec) = w12.split()
-(u1, D1_vec) = w1.split()
-(us, Ds_vec) = ws.split()
-
-
-
-# Initial Conformation Tensor
-I_vec = Expression(('1.0','0.0','1.0'), degree=2)
-initial_guess_conform = project(I_vec, Zc)
-
-
-# Some Useful Functions
 def  tgrad (w):
     """ Returns  transpose  gradient """
-    return  transpose(grad(w))
+    w_grad = grad(w)
+
+    tran_w_grad = w_grad.T
+
+    return  tran_w_grad
+
 def Dincomp (w):
     """ Returns 2* the  rate of  strain  tensor """
     return (grad(w) + tgrad(w))/2
 def Dcomp (w):
     """ Returns 2* the  rate of  strain  tensor """
-    return ((grad(w) + tgrad(w))-(2.0/3)*div(w)*Identity(len(u)))/2
+    return ((grad(w) + tgrad(w))-(2.0/3)*div(w)*Identity(len(w)))/2
 
-def sigmain(u, p, Tau):
+def sigmain(u, p, Tau, We, betav):
     return 2*betav*Dincomp(u) - p*Identity(len(u)) + ((1-betav)/We)*(Tau-Identity(len(u)))
 
-def sigma(u, p, Tau):
+def sigma(u, p, Tau, We, betav):
     return 2*betav*Dcomp(u) - p*Identity(len(u)) + ((1-betav)/We)*(Tau-Identity(len(u)))
 
 def Fdef(u, Tau):
@@ -328,6 +310,20 @@ def normalize_solution(u):
     #u.vector().set_local(u_array)  # alternative
     return u
 
+# Adaptive Mesh Refinement 
+def adaptive_refinement(mesh, kapp, ratio):
+    kapp_array = kapp.vector().get_local()
+    kapp_level = np.percentile(kapp_array, (1-ratio)*100)
+
+    cell_domains = MeshFunction("bool", mesh, 2)
+    cell_domains.set_all(False)
+    for cell in cells(mesh):
+        x = cell.midpoint()
+        if  kapp([x[0], x[1]]) > kapp_level:
+            cell_domains[cell]=True
+
+    mesh = refine(mesh, cell_domains, redistribute=True)
+    return mesh
 
 def stream_function(u):
     '''Compute stream function of given 2-d velocity vector.'''
@@ -349,14 +345,55 @@ def stream_function(u):
 
     return psi
 
+def comp_stream_function(rho, u):
+    '''Compute stream function of given 2-d velocity vector.'''
+    V = u.function_space().sub(0).collapse()
 
-def min_location(u):
+    if V.mesh().topology().dim() != 2:
+        raise ValueError("Only stream function in 2D can be computed.")
 
+    psi = TrialFunction(V)
+    phi = TestFunction(V)
+
+    a = inner(grad(psi), grad(phi))*dx
+    L = inner(rho*u[1].dx(0) - rho*u[0].dx(1), phi)*dx
+    bc = DirichletBC(V, Constant(0.), DomainBoundary())
+
+    A, b = assemble_system(a, L, bc)
+    psi = Function(V)
+    solve(A, psi.vector(), b)
+
+    return psi
+
+def shear_rate(u):
+    '''Compute shear rate of given 2-d velocity vector.'''
+    V = u.function_space().sub(0).collapse()
+
+    if V.mesh().topology().dim() != 2:
+        raise ValueError("Only stream function in 2D can be computed.")
+
+    psi = TrialFunction(V)
+    phi = TestFunction(V)
+
+    a = inner(grad(psi), grad(phi))*dx
+    gamma = grad(u) + tgrad(u) 
+    g = inner(0.5*gamma, gamma)
+    L = inner(g, phi)*dx
+    bc = DirichletBC(V, Constant(0.), DomainBoundary())
+
+    A, b = assemble_system(a, L, bc)
+    psi = Function(V)
+    solve(A, psi.vector(), b)
+
+    return psi
+
+def min_location(u, mesh):
     V = u.function_space()
 
     if V.mesh().topology().dim() != 2:
        raise ValueError("Only minimum of scalar function in 2D can be computed.")
 
+    gdim = mesh.geometry().dim()
     dofs_x = V.tabulate_dof_coordinates().reshape((-1, gdim))
 
     function_array = u.vector().get_local()
@@ -366,6 +403,23 @@ def min_location(u):
     min_loc = dofs_x[min_index]
 
     return min_loc
+
+def max_location(u, mesh):
+    V = u.function_space()
+    if V.mesh().topology().dim() != 2:
+       raise ValueError("Only minimum of scalar function in 2D can be computed.")
+
+    gdim = mesh.geometry().dim()
+    dofs_x = V.tabulate_dof_coordinates().reshape((-1, gdim))
+
+    function_array = u.vector().get_local()
+    maximum = max(u.vector().get_local())
+
+    max_index = np.where(function_array == maximum)
+    max_loc = dofs_x[max_index]
+
+    return max_loc
+
 
 def l2norm_solution(u):
     u_array = u.vector().array()
@@ -381,113 +435,7 @@ def chunks(l, n):
         yield l[i:i + n]
 
 
-
-
-
-# Project Vector Trial Functions of Stress onto SYMMETRIC Tensor Space
-D = as_matrix([[D_vec[0], D_vec[1]],
-               [D_vec[1], D_vec[2]]]) 
-
-tau = as_matrix([[tau_vec[0], tau_vec[1]],
-                 [tau_vec[1], tau_vec[2]]])  
-
-# Project Vector Test Functions of Stress onto SYMMETRIC Tensor Space
-
-Rt = as_matrix([[Rt_vec[0], Rt_vec[1]],
-                 [Rt_vec[1], Rt_vec[2]]])        # DEVSS Space
-
-R = as_matrix([[R_vec[0], R_vec[1]],
-                 [R_vec[1], R_vec[2]]])
-
-# Project Vector Functions of Stress onto SYMMETRIC Tensor Space
-
-D0 = as_matrix([[D0_vec[0], D0_vec[1]],
-                [D0_vec[1], D0_vec[2]]])        #DEVSS STABILISATION
-
-D12 = as_matrix([[D12_vec[0], D12_vec[1]],
-                [D12_vec[1], D12_vec[2]]])
-
-Ds = as_matrix([[Ds_vec[0], Ds_vec[1]],
-                [Ds_vec[1], Ds_vec[2]]])
-
-
-D1 = as_matrix([[D1_vec[0], D1_vec[1]],
-                [D1_vec[1], D1_vec[2]]])
-
-
-tau0 = as_matrix([[tau0_vec[0], tau0_vec[1]],
-                  [tau0_vec[1], tau0_vec[2]]])        # Stress 
-
-tau12 = as_matrix([[tau12_vec[0], tau12_vec[1]],
-                   [tau12_vec[1], tau12_vec[2]]]) 
-
-tau1 = as_matrix([[tau1_vec[0], tau1_vec[1]],
-                  [tau1_vec[1], tau1_vec[2]]])   
-
-
-
-
-
-# Default Nondimensional Parameters
-conv = 0
-U = 1.0
-betav = 0.5     
-Re = 1                             #Reynolds Number
-We = 0.5                           #Weisenberg NUmber
-Di = 0.005                         #Diffusion Number
-Vh = 0.005
-T_0 = 300
-T_h = 350
-Bi = 0.2
-c0 = 1500
-Ma = U/c0 
-rho_0 = 1.0
-
-
-
-
-# Define boundary/stabilisation FUNCTIONS
-
-ulidreg=Expression(('8*(1.0+tanh(8*t-4.0))*(x[0]*(L-x[0]))*(x[0]*(L-x[0]))','0'), degree=2, t=0.0, L=L, T_0=T_0, T_h=T_h) # Lid Speed 
-ulid=Expression(('0.5*(1.0+tanh(8*t-4.0))','0'), degree=2, t=0.0, T_0=T_0, T_h=T_h) # Lid Speed 
-rampd=Expression('0.5*(1+tanh(8*(2.0-t)))', degree=2, t=0.0)
-rampu=Expression('0.5*(1+tanh(16*(t-2.0)))', degree=2, t=0.0)
-
-
-# Interpolate Stabilisation Functions
-h = CellDiameter(mesh)
-#h_k = project(h/mesh.hmax(), Qt)
-n = FacetNormal(mesh)
-
-# Default Stabilisation Parameters
-alph = 0
-th = 0                  # DEVSS
-c1 = 0            # SUPG / SU
-c2 = 0                  # Artificial Diffusion
-
-# Define unit Normal/tangent Vector at inner and outer Boundary (Method 2)
-n0 =  Expression(('-1' , '0'), degree=2)
-n1 =  Expression(('0' , '1' ), degree=2)
-n2 =  Expression(('1' , '0' ), degree=2)
-n3 =  Expression(('0' , '-1'), degree=2)
-
-
-
-# Dirichlet Boundary Conditions  (LID DRIVEN CAVITY)
-noslip  = DirichletBC(W.sub(0), Constant((0.0, 0.0)), no_slip)  # No Slip boundary conditions on the left wall
-drive1  =  DirichletBC(W.sub(0), ulidreg, lid)  # No Slip boundary conditions on the upper wall
-#slip  = DirichletBC(V, sl, omega0)  # Slip boundary conditions on the second part of the flow wall 
-#temp0 =  DirichletBC(Qt, T_0, omega0)    #Temperature on Omega0 
-#temp2 =  DirichletBC(Qt, T_0, omega2)    #Temperature on Omega2 
-#temp3 =  DirichletBC(Qt, T_0, omega3)    #Temperature on Omega3 
-#Collect Boundary Conditions
-bcu = [noslip, drive1]
-bcp = []
-bcT = []    #temp0, temp2
-bctau = []
-
-# Log Conformation Tensor 
-
-
-
-
+def absolute(u):
+    u_array = np.absolute(u.vector().get_local())
+    u.vector()[:] = u_array
+    return u

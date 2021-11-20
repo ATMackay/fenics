@@ -2,7 +2,7 @@
 
 ## TODO
 
-Python modules for computing non viscoelastic flow in the unit square [0,1]x[0,1].
+Python modules for computing viscoelastic lid-driven cavity flow in the unit square [0,1]x[0,1].
 
 ## Install FEniCS (Ubuntu)
 

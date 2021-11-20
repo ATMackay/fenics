@@ -37,26 +37,26 @@ from fenics_fem import *  # Import FEniCS helper functions
 def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
     update_progress("compressible bouyancy-driven flow in the unit square", 0)
-    # SET TIMESTEPPING PARAMTER
+
+    # Experiment Run Time
     T_f = simulation_time
     Tf = T_f
 
-    # Experiment Run Time
+    # Timestepping parameters
     dt = 0.001  #Timestep
-    tol = 0.0001
 
     # Nondimensional flow parameters
-    B, L = 1, 1 # Length
+    B, L = 1, 1            # Length
     U = 1
     betav = 0.99    
-    Ra = 10000                           #Rayleigh Number
+    Ra = 10000             # Rayleigh Number
     Pr = 1.0
-    We = 0.01                          #Weisenberg NUmber
+    We = 0.01              # Weisenberg NUmber
     Vh = 0.005
     T_0 = 300
     T_h = 350
     Bi = 0.2
-    Di = 0.005                         #Diffusion Number
+    Di = 0.005             #Diffusion Number
     Ma = 0.01
     al = 2.0
 
@@ -432,7 +432,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             solve(A0, rho12.vector(), b0, "bicgstab", "default")
             end()
 
-            # compute u^{n+1/2} Velocity half-step
+            # compute u^{n+1/2} velocity half-step
             Du12Dt = rho0*(2.0*(u - u0) / dt + dot(u0, nabla_grad(u0)))
             Fu12 = dot(Du12Dt, v)*dx + \
                 + inner(sigmacom(U, p0, tau0, We, Pr, betav), Dincomp(v))*dx + Ra*Pr*inner(rho0*f,v)*dx \
@@ -551,7 +551,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             (u1, D1_vec) = w1.split()
 
 
-            # compute \taue^{n+1}
+            # compute \tau^{n+1}
             stress_eq = ((We/dt)+1.0)*tau  +  We*Fdefcom(u1,tau) - (We/dt)*tau0 - Identity(len(u)) 
             A = inner(stress_eq,Rt)*dx
             a4 = lhs(A)

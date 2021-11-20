@@ -1,4 +1,4 @@
-"""Base Code for the Finite Element solution of the Lid Driven Cavity Flow"""
+"""FEniCs FEM helper functions"""
 
 from decimal import *
 from dolfin import *
