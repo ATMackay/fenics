@@ -40,7 +40,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     T_f = simulation_time
     Tf = T_f
 
-    dt = 0.001  #Time Stepping  
+    dt = 0.0005  #Time Stepping  
     Tf = T_f
 
     tol = 10E-6
@@ -246,10 +246,10 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             Ma = float(ma_row[1])
         elif j==2:
             Re = float(re_row[1])
-            Ma = float(ma_row[1])
+            Ma = float(ma_row[2])
         elif j==3:
             Re = float(re_row[1])
-            Ma = float(ma_row[1])
+            Ma = float(ma_row[3])
 
         # Continuation in Reynolds/Weissenberg Number Number (Re-->10Re)
         Ret=Expression('Re*(1.0+0.5*(1.0+tanh(0.7*t-4.0))*19.0)', t=0.0, Re=Re, degree=2)
@@ -381,7 +381,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         iter = 0            # iteration counter
         maxiter = 10000000 
         while t < Tf + DOLFIN_EPS and iter < maxiter:
-            flow_description = "compressible bouyancy-driven flow: loop: " +str(jjj) + ", Ra: "+str(Re)+", We: "+str(We)+", Ma: "+str(Ma)+", betav: "+str(betav)
+            flow_description = "compressible lid-driven cavity flow: loop: " +str(jjj) + ", Re: "+str(Re)+", We: "+str(We)+", Ma: "+str(Ma)+", betav: "+str(betav)
             update_progress(flow_description, t/Tf) # Update progress bar
             iter += 1
             # Set Function timestep
@@ -1004,19 +1004,22 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 # Scalar Function code
                 x = Expression('x[0]', degree=2)     #GET X-COORDINATES LIST
                 y = Expression('x[1]', degree=2)     #GET Y-COORDINATES LIST
-                pvals = p1.vector().array()          # GET SOLUTION p= p(x,y) list
-                Tvals = T1.vector().array()          # GET SOLUTION T= T(x,y) list
-                rhovals = rho1.vector().array()      # GET SOLUTION p= p(x,y) list
+                pvals = p1.vector().get_local()          # GET SOLUTION p= p(x,y) list
+                Tvals = T1.vector().get_local()         # GET SOLUTION T= T(x,y) list
+                rhovals = rho1.vector().get_local()     # GET SOLUTION p= p(x,y) list
                 tauxx = project(tau1_vec[0], Q)
-                tauxxvals = tauxx.vector().array()
+                tauxxvals = tauxx.vector().get_local()
                 xyvals = mesh.coordinates()     # CLEAN THIS UP!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 xvalsq = interpolate(x, Q)#xyvals[:,0]
                 yvalsq= interpolate(y, Q)#xyvals[:,1]
                 xvalsw = interpolate(x, Qt)#xyvals[:,0]
                 yvalsw= interpolate(y, Qt)#xyvals[:,1]
 
-                xvals = xvalsq.vector().array()
-                yvals = yvalsq.vector().array()
+                xvals = xvalsq.vector().get_local()
+                yvals = yvalsq.vector().get_local()
+
+                # Create 2D array with mesh coordinate points
+                points = np.vstack((xvals, yvals)).T
 
 
                 xx = np.linspace(0,1)
@@ -1044,11 +1047,11 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.savefig("plots/flow/PressureContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
                 plt.clf()
 
-                plt.contour(XX, YY, TT, 20) 
-                plt.title('Temperature Contours')   # TEMPERATURE CONTOUR PLOT
-                plt.colorbar() 
-                plt.savefig("plots/flow/TemperatureContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                plt.clf()
+                #plt.contour(XX, YY, TT, 20) 
+                #plt.title('Temperature Contours')   # TEMPERATURE CONTOUR PLOT
+                #plt.colorbar() 
+                #plt.savefig("plots/flow/TemperatureContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+                #plt.clf()
 
                 plt.contour(XX, YY, normstress, 20) 
                 plt.title('Stress Contours')   # NORMAL STRESS CONTOUR PLOT
@@ -1063,8 +1066,6 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 v1_q = project(u1[1],Q)
                 vvals = v1_q.vector().get_local()
 
-                #Merge arrays
-                points = np.vstack((xvals, yvals)).T
 
                 uu = sci.griddata(points, uvals, (XX, YY), method='linear') 
                 vv = sci.griddata(points, vvals, (XX, YY), method='linear') 
@@ -1103,4 +1104,4 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("flow-parameters.csv", mesh_resolution=50, simulation_time=0.05, mesh_refinement=False)
+    main("flow-parameters.csv", mesh_resolution=50, simulation_time=10, mesh_refinement=False)
