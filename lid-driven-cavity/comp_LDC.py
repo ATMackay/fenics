@@ -67,7 +67,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     th = 1.0               # DEVSS
 
     # SET LOOPING PARAMETER
-    loopend=5
+    loopend=3
     j = 0
     err_count = 0
     jjj = 0
@@ -238,18 +238,18 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         # Set parameters for secondary loop -----------------------------------------------------------------------
 
         betav = 0.5
-        We = float(we_row[jjj+1])
+        Ma = float(ma_row[3])
 
         # Set parameters for primary loop ------------------------------------------------        
         if j==1:
             Re = float(re_row[1])
-            Ma = float(ma_row[1])
+            We = float(we_row[1])
         elif j==2:
             Re = float(re_row[1])
-            Ma = float(ma_row[2])
+            We = float(we_row[2])
         elif j==3:
             Re = float(re_row[1])
-            Ma = float(ma_row[3])
+            We = float(we_row[3])
 
         # Continuation in Reynolds/Weissenberg Number Number (Re-->10Re)
         Ret=Expression('Re*(1.0+0.5*(1.0+tanh(0.7*t-4.0))*19.0)', t=0.0, Re=Re, degree=2)
@@ -381,7 +381,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         iter = 0            # iteration counter
         maxiter = 10000000 
         while t < Tf + DOLFIN_EPS and iter < maxiter:
-            flow_description = "compressible lid-driven cavity flow: loop: " +str(jjj) + ", Re: "+str(Re)+", We: "+str(We)+", Ma: "+str(Ma)+", betav: "+str(betav)
+            flow_description = "compressible lid-driven cavity flow: loop: " +str(jjj) + ":"+str(j) + ", Re: "+str(Re)+", We: "+str(We)+", Ma: "+str(Ma)+", betav: "+str(betav)
             update_progress(flow_description, t/Tf) # Update progress bar
             iter += 1
             # Set Function timestep
@@ -788,36 +788,36 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 tau_xx1 = list(chunks(tau_xxg, mm))
                 tau_yy1 = list(chunks(tau_yyg, mm))
                 plt.figure(0)
-                plt.plot(x_axis1[0], u_y1[0], 'r-', label=r'$Ma=0.001$')
-                plt.plot(x_axis1[1], u_y1[1], 'b-', label=r'$Ma=0.01$')
-                plt.plot(x_axis1[2], u_y1[2], 'c-', label=r'$Ma=0.1$')
+                plt.plot(x_axis1[0], u_y1[0], 'r-', label=r'$We=0.001$')
+                plt.plot(x_axis1[1], u_y1[1], 'b-', label=r'$We=0.5$')
+                plt.plot(x_axis1[2], u_y1[2], 'c-', label=r'$We=1.0$')
                 plt.legend(loc='best')
                 plt.xlabel('x')
                 plt.ylabel('$u_y(x,0.75)$')
                 plt.savefig("plots/cross-section/u_yRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
                 plt.clf()
                 plt.figure(1)
-                plt.plot(u_x1[0], y_axis1[0], 'r-', label=r'$Ma=0.001$')
-                plt.plot(u_x1[1], y_axis1[1], 'b-', label=r'$Ma=0.01$')
-                plt.plot(u_x1[2], y_axis1[2], 'c-', label=r'$Ma=0.1$')
+                plt.plot(u_x1[0], y_axis1[0], 'r-', label=r'$We=0.001$')
+                plt.plot(u_x1[1], y_axis1[1], 'b-', label=r'$We=0.5$')
+                plt.plot(u_x1[2], y_axis1[2], 'c-', label=r'$We=1.0$')
                 plt.legend(loc='best')
                 plt.xlabel('$u_x(0.5,y)$')
                 plt.ylabel('y')
                 plt.savefig("plots/cross-section/u_xRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
                 plt.clf()
                 plt.figure(2)
-                plt.plot(x_axis1[0], tau_xx1[0], 'r-', label=r'$Ma=0.001$')
-                plt.plot(x_axis1[1], tau_xx1[1], 'b-', label=r'$Ma=0.01$')
-                plt.plot(x_axis1[2], tau_xx1[2], 'c-', label=r'$Ma=0.1$')
+                plt.plot(x_axis1[0], tau_xx1[0], 'r-', label=r'$We=0.001$')
+                plt.plot(x_axis1[1], tau_xx1[1], 'b-', label=r'$We=0.5$')
+                plt.plot(x_axis1[2], tau_xx1[2], 'c-', label=r'$We=1.0$')
                 plt.legend(loc='best')
                 plt.xlabel('x')
                 plt.ylabel('$\tau_{xx}(x,1.0)$')
                 plt.savefig("plots/cross-section/tau_xxRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
                 plt.clf()
                 plt.figure(3)
-                plt.plot(x_axis1[0], tau_yy1[0], 'r-', label=r'$Ma=0.001$')
-                plt.plot(x_axis1[1], tau_yy1[1], 'b-', label=r'$Ma=0.01$')
-                plt.plot(x_axis1[2], tau_yy1[2], 'c-', label=r'$Ma=0.1$')
+                plt.plot(x_axis1[0], tau_yy1[0], 'r-', label=r'$We=0.001$')
+                plt.plot(x_axis1[1], tau_yy1[1], 'b-', label=r'$We=0.5$')
+                plt.plot(x_axis1[2], tau_yy1[2], 'c-', label=r'$We=1.0$')
                 plt.legend(loc='best')
                 plt.xlabel('x')
                 plt.ylabel('$\tau_{yy}(x,1.0)$')
@@ -866,23 +866,23 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             if j==loopend:
                 # Kinetic Energy
                 plt.figure(0)
-                plt.plot(x1, ek1, 'r-', label=r'$Ma=0.001$')
-                plt.plot(x2, ek2, 'b--', label=r'$Ma=0.01$')
-                plt.plot(x3, ek3, 'c-', label=r'$Ma=0.1$')
+                plt.plot(x1, ek1, 'r-', label=r'$We=0.001$')
+                plt.plot(x2, ek2, 'b--', label=r'$We=0.5$')
+                plt.plot(x3, ek3, 'c-', label=r'$We=1.0$')
                 plt.legend(loc='best')
                 plt.xlabel('time(s)')
                 plt.ylabel('$E_k$')
-                plt.savefig("plots/energy/MaKineticEnergyRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+                plt.savefig("plots/energy/MaKineticEnergyRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+"t="+str(t)+".png")
                 plt.clf()
                 # Elastic Energy
                 plt.figure(1)
-                plt.plot(x1, ee1, 'r-', label=r'$Ma=0.001$')
-                plt.plot(x2, ee2, 'b--', label=r'$Ma=0.01$')
-                plt.plot(x3, ee3, 'c-', label=r'$Ma=0.1$')
+                plt.plot(x1, ee1, 'r-', label=r'$We=0.001$')
+                plt.plot(x2, ee2, 'b--', label=r'$We=0.5$')
+                plt.plot(x3, ee3, 'c-', label=r'$We=1.0$')
                 plt.legend(loc='best')
                 plt.xlabel('time(s)')
                 plt.ylabel('$E_e$')
-                plt.savefig("plots/energy/MaElasticEnergyRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+                plt.savefig("plots/energy/MaElasticEnergyRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+"t="+str(t)+".png")
                 plt.clf()
                 plt.close()
 
@@ -941,157 +941,152 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.savefig("plots/energy/ElasticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"mesh="+str(mm)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
                 plt.clf()"""
 
-            if j==loopend or j==1:
-                # Plot First Normal Stress Difference
-                tau_xx=project(tau1[0,0],Q)
-                mplot(tau_xx)
-                plt.colorbar()
-                plt.savefig("plots/flow/tau_xxRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                plt.clf() 
-                tau_xy=project(tau1[1,0],Q)
-                mplot(tau_xy)
-                plt.colorbar()
-                plt.savefig("plots/flow/tau_xyRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                plt.clf() 
-                tau_yy=project(tau1[1,1],Q)
-                mplot(tau_yy)
-                plt.colorbar()
-                plt.savefig("plots/flow/tau_yyRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                plt.clf() 
-                divu = project(div(u1),Q)
-                mplot(divu)
-                plt.colorbar()
-                plt.savefig("plots/flow/div_uRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                plt.clf()
 
-            if j==loopend or j==1:
-        
-                # Plot Velocity Components
-                ux=project(u1[0],Q)
-                mplot(ux)
-                plt.colorbar()
-                plt.savefig("plots/flow/u_xRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                plt.clf()
-                uy=project(u1[1],Q)
-                mplot(uy)
-                plt.colorbar()
-                plt.savefig("plots/flow/u_yRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                plt.clf()
+            # Plot First Normal Stress Difference
+            tau_xx=project(tau1[0,0],Q)
+            mplot(tau_xx)
+            plt.colorbar()
+            plt.savefig("plots/flow/tau_xxRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.clf() 
+            tau_xy=project(tau1[1,0],Q)
+            mplot(tau_xy)
+            plt.colorbar()
+            plt.savefig("plots/flow/tau_xyRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.clf() 
+            tau_yy=project(tau1[1,1],Q)
+            mplot(tau_yy)
+            plt.colorbar()
+            plt.savefig("plots/flow/tau_yyRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.clf() 
+            divu = project(div(u1),Q)
+            mplot(divu)
+            plt.colorbar()
+            plt.savefig("plots/flow/div_uRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.clf()
 
-            if j==loopend or j==1:
-                # Matlab Plot of the Solution at t=Tf
-                rho1=rho_0*rho1
-                rho1=project(rho1,Q)
-                #p1=mu_0*(L/U)*p1  #Dimensionalised Pressure
-                #p1=project(p1,Q)
-                mplot(rho1)
-                plt.colorbar()
-                plt.savefig("plots/flow/DensityRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                plt.clf() 
-                mplot(p1)
-                plt.colorbar()
-                plt.savefig("plots/flow/PressureRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                plt.clf()
-                mplot(T1)
-                plt.colorbar()
-                plt.savefig("plots/flow/TemperatureRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                plt.clf()
+            # Plot Velocity Components
+            ux=project(u1[0],Q)
+            mplot(ux)
+            plt.colorbar()
+            plt.savefig("plots/flow/u_xRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.clf()
+            uy=project(u1[1],Q)
+            mplot(uy)
+            plt.colorbar()
+            plt.savefig("plots/flow/u_yRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.clf()
 
 
+            # Matlab Plot of the Solution at t=Tf
+            rho1=rho_0*rho1
+            rho1=project(rho1,Q)
+            #p1=mu_0*(L/U)*p1  #Dimensionalised Pressure
+            #p1=project(p1,Q)
+            mplot(rho1)
+            plt.colorbar()
+            plt.savefig("plots/flow/DensityRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.clf() 
+            mplot(p1)
+            plt.colorbar()
+            plt.savefig("plots/flow/PressureRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.clf()
+            mplot(T1)
+            plt.colorbar()
+            plt.savefig("plots/flow/TemperatureRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.clf()
 
-            if j==3 or j==1:
-                #Plot Contours USING MATPLOTLIB
-                # Scalar Function code
-                x = Expression('x[0]', degree=2)     #GET X-COORDINATES LIST
-                y = Expression('x[1]', degree=2)     #GET Y-COORDINATES LIST
-                pvals = p1.vector().get_local()          # GET SOLUTION p= p(x,y) list
-                Tvals = T1.vector().get_local()         # GET SOLUTION T= T(x,y) list
-                rhovals = rho1.vector().get_local()     # GET SOLUTION p= p(x,y) list
-                tauxx = project(tau1_vec[0], Q)
-                tauxxvals = tauxx.vector().get_local()
-                xyvals = mesh.coordinates()     # CLEAN THIS UP!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                xvalsq = interpolate(x, Q)#xyvals[:,0]
-                yvalsq= interpolate(y, Q)#xyvals[:,1]
-                xvalsw = interpolate(x, Qt)#xyvals[:,0]
-                yvalsw= interpolate(y, Qt)#xyvals[:,1]
+            #Plot Contours USING MATPLOTLIB
+            # Scalar Function code
+            x = Expression('x[0]', degree=2)     #GET X-COORDINATES LIST
+            y = Expression('x[1]', degree=2)     #GET Y-COORDINATES LIST
+            pvals = p1.vector().get_local()          # GET SOLUTION p= p(x,y) list
+            Tvals = T1.vector().get_local()         # GET SOLUTION T= T(x,y) list
+            rhovals = rho1.vector().get_local()     # GET SOLUTION p= p(x,y) list
+            tauxx = project(tau1_vec[0], Q)
+            tauxxvals = tauxx.vector().get_local()
+            xyvals = mesh.coordinates()     # CLEAN THIS UP!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            xvalsq = interpolate(x, Q)#xyvals[:,0]
+            yvalsq= interpolate(y, Q)#xyvals[:,1]
+            xvalsw = interpolate(x, Qt)#xyvals[:,0]
+            yvalsw= interpolate(y, Qt)#xyvals[:,1]
 
-                xvals = xvalsq.vector().get_local()
-                yvals = yvalsq.vector().get_local()
+            xvals = xvalsq.vector().get_local()
+            yvals = yvalsq.vector().get_local()
 
-                # Create 2D array with mesh coordinate points
-                points = np.vstack((xvals, yvals)).T
-
-
-                xx = np.linspace(0,1)
-                yy = np.linspace(0,1)
-                XX, YY = np.meshgrid(xx,yy)   # (x,y) coordinate data formatted so that it can be used by plt.contour()
-                pp = sci.griddata(points, pvals, (XX, YY), method='linear') # u(x,y) data so that it can be used by 
-                pp = np.reshape(pp, (len(xx), len(yy))) # Reshape to 2D array
-                TT = sci.griddata(points, Tvals, (XX, YY), method='linear')
-                TT = np.reshape(TT, (len(xx), len(yy))) # Reshape to 2D array
-                dd = sci.griddata(points, rhovals, (XX, YY), method='linear')
-                dd = np.reshape(dd, (len(xx), len(yy))) # Reshape to 2D array
-                normstress = sci.griddata(points, tauxxvals, (XX, YY), method='linear')
-                normstress = np.reshape(dd, (len(xx), len(yy))) # Reshape to 2D array
-
-
-                plt.contour(XX, YY, dd, 25)
-                plt.title('Density Contours')   # DENSITY CONTOUR PLOT
-                plt.colorbar() 
-                plt.savefig("plots/flow/DensityContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                plt.clf()
-
-                plt.contour(XX, YY, pp, 25)
-                plt.title('Pressure Contours')   # PRESSURE CONTOUR PLOT
-                plt.colorbar() 
-                plt.savefig("plots/flow/PressureContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                plt.clf()
-
-                #plt.contour(XX, YY, TT, 20) 
-                #plt.title('Temperature Contours')   # TEMPERATURE CONTOUR PLOT
-                #plt.colorbar() 
-                #plt.savefig("plots/flow/TemperatureContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                #plt.clf()
-
-                plt.contour(XX, YY, normstress, 20) 
-                plt.title('Stress Contours')   # NORMAL STRESS CONTOUR PLOT
-                plt.colorbar() 
-                plt.savefig("plots/flow/StressContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                plt.clf()
+            # Create 2D array with mesh coordinate points
+            points = np.vstack((xvals, yvals)).T
 
 
-                #Plot Velocity Streamlines USING MATPLOTLIB
-                u1_q = project(u1[0],Q)
-                uvals = u1_q.vector().get_local()
-                v1_q = project(u1[1],Q)
-                vvals = v1_q.vector().get_local()
+            xx = np.linspace(0,1)
+            yy = np.linspace(0,1)
+            XX, YY = np.meshgrid(xx,yy)   # (x,y) coordinate data formatted so that it can be used by plt.contour()
+            pp = sci.griddata(points, pvals, (XX, YY), method='linear') # u(x,y) data so that it can be used by 
+            pp = np.reshape(pp, (len(xx), len(yy))) # Reshape to 2D array
+            TT = sci.griddata(points, Tvals, (XX, YY), method='linear')
+            TT = np.reshape(TT, (len(xx), len(yy))) # Reshape to 2D array
+            dd = sci.griddata(points, rhovals, (XX, YY), method='linear')
+            dd = np.reshape(dd, (len(xx), len(yy))) # Reshape to 2D array
+            normstress = sci.griddata(points, tauxxvals, (XX, YY), method='linear')
+            normstress = np.reshape(dd, (len(xx), len(yy))) # Reshape to 2D array
 
 
-                uu = sci.griddata(points, uvals, (XX, YY), method='linear') 
-                vv = sci.griddata(points, vvals, (XX, YY), method='linear') 
+            plt.contour(XX, YY, dd, 25)
+            plt.title('Density Contours')   # DENSITY CONTOUR PLOT
+            plt.colorbar() 
+            plt.savefig("plots/flow/DensityContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.clf()
 
-                # Set all nan values to DOLFIN_EPS (close to zero)
-                uu = np.nan_to_num(uu, nan = 0)
-                vv = np.nan_to_num(vv, nan = 0)
-                # Reshape
-                uu = np.reshape(uu, (len(yy), len(xx))) # Reshape to 2D array
-                vv = np.reshape(vv, (len(yy), len(xx))) # Reshape to 2D array
+            plt.contour(XX, YY, pp, 25)
+            plt.title('Pressure Contours')   # PRESSURE CONTOUR PLOT
+            plt.colorbar() 
+            plt.savefig("plots/flow/PressureContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.clf()
+
+            #plt.contour(XX, YY, TT, 20) 
+            #plt.title('Temperature Contours')   # TEMPERATURE CONTOUR PLOT
+            #plt.colorbar() 
+            #plt.savefig("plots/flow/TemperatureContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            #plt.clf()
+
+            plt.contour(XX, YY, normstress, 20) 
+            plt.title('Stress Contours')   # NORMAL STRESS CONTOUR PLOT
+            plt.colorbar() 
+            plt.savefig("plots/flow/StressContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.clf()
 
 
-                    #Determine Speed 
-                speed = np.sqrt(uu*uu+ vv*vv)
+            #Plot Velocity Streamlines USING MATPLOTLIB
+            u1_q = project(u1[0],Q)
+            uvals = u1_q.vector().get_local()
+            v1_q = project(u1[1],Q)
+            vvals = v1_q.vector().get_local()
 
-    
-                plt.streamplot(XX, YY, uu, vv,  
-                            density=3,              
-                            color=speed,  
-                            cmap=cm.gnuplot,                         # colour map
-                            linewidth=0.8)                           # line thickness
-                                                                        # arrow size
-                plt.colorbar()                                          # add colour bar on the right
-                plt.title('Lid Driven Cavity Flow')
-                plt.savefig("plots/flow/VelocityContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")   
-                plt.clf()                                             # display the plot
+
+            uu = sci.griddata(points, uvals, (XX, YY), method='linear') 
+            vv = sci.griddata(points, vvals, (XX, YY), method='linear') 
+
+            # Set all nan values to DOLFIN_EPS (close to zero)
+            uu = np.nan_to_num(uu, nan = 0)
+            vv = np.nan_to_num(vv, nan = 0)
+            # Reshape
+            uu = np.reshape(uu, (len(yy), len(xx))) # Reshape to 2D array
+            vv = np.reshape(vv, (len(yy), len(xx))) # Reshape to 2D array
+
+
+                #Determine Speed 
+            speed = np.sqrt(uu*uu+ vv*vv)
+
+
+            plt.streamplot(XX, YY, uu, vv,  
+                        density=3,              
+                        color=speed,  
+                        cmap=cm.gnuplot,                         # colour map
+                        linewidth=0.8)                           # line thickness
+                                                                    # arrow size
+            plt.colorbar()                                          # add colour bar on the right
+            plt.title('Lid Driven Cavity Flow')
+            plt.savefig("plots/flow/VelocityContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")   
+            plt.clf()                                             # display the plot
 
 
             plt.close()
@@ -1104,4 +1099,4 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("flow-parameters.csv", mesh_resolution=50, simulation_time=10, mesh_refinement=False)
+    main("flow-parameters.csv", mesh_resolution=40, simulation_time=10, mesh_refinement=False)
