@@ -66,6 +66,22 @@ def xskewcavity(x,y):
     ups = y
     return(xi,ups)
 
+def LDC_Regular_Mesh(mm, B, L):
+    # Define Geometry
+    x0 = 0
+    y0 = 0
+    x1 = B
+    y1 = L
+
+    # Mesh refinement comparison Loop
+    nx=mm*B
+    ny=mm*L
+
+    #c = min(x1-x0,y1-y0)
+    base_mesh= RectangleMesh(Point(x0,y0), Point(x1, y1), nx, ny) # Rectangular Mesh
+
+    return base_mesh
+
 
 def DGP_Mesh(mm, B, L):
     # Define Geometry
@@ -88,7 +104,7 @@ def DGP_Mesh(mm, B, L):
 
     mesh1 = base_mesh
 
-    """
+
     # MESH CONSTRUCTION CODE
     nv= base_mesh.num_vertices()
     nc= base_mesh.num_cells()
@@ -118,13 +134,12 @@ def DGP_Mesh(mm, B, L):
     editor.init_vertices(nv)
     editor.init_cells(nc)
     for i in range(nv):
-        editor.add_vertex(i, r[i], l[i])
+        editor.add_vertex(i, np.array([r[i], l[i]]))
     for i in range(nc):
-        editor.add_cell(i, cells0[i], cells1[i], cells2[i])
+        editor.add_cell(i, np.array([cells0[i], cells1[i], cells2[i]], dtype=np.uintp))
 
 
     editor.close()
-    """
     return mesh1
 
 def DGP_structured_mesh(mm, x_0, y_0, x_1, y_1, B, L):
@@ -157,17 +172,18 @@ def DGP_structured_mesh(mm, x_0, y_0, x_1, y_1, B, L):
     editor.init_vertices(nv)
     editor.init_cells(nc)
     for i in range(nv):
-        editor.add_vertex(i, r[i], l[i])
+        editor.add_vertex(i, np.array([r[i], l[i]]))
     for i in range(nc):
-        editor.add_cell(i, cells0[i], cells1[i], cells2[i])
+        editor.add_cell(i, np.array([cells0[i], cells1[i], cells2[i]], dtype=np.uintp))
+
     editor.close()
     
     return mesh1
 
-def refine_boundary(mesh, times):
-    for i in range(times):
+def refine_boundary(x_0, y_0, x_1, y_1, mesh, times):
+    for i in range(times-1):
           g = (max(x_1,y_1)-max(x_0,y_0))*0.025/(i+1)
-          cell_domains = CellFunction("bool", mesh)
+          cell_domains = MeshFunction('bool', mesh, 2) 
           cell_domains.set_all(False)
           for cell in cells(mesh):
               x = cell.midpoint()
@@ -177,17 +193,17 @@ def refine_boundary(mesh, times):
           mesh = refine(mesh, cell_domains, redistribute=True)
     return mesh
 
-def refine_top(mesh, times):
+def refine_top(x_0, y_0, x_1, y_1, mesh, times):
     for i in range(times):
           g = (max(x_1,y_1)-max(x_0,y_0))*0.025/(i+1)
-          cell_domains = CellFunction("bool", mesh)
+          cell_domains = MeshFunction('bool', mesh, 2) 
           cell_domains.set_all(False)
           for cell in cells(mesh):
               x = cell.midpoint()
               if  x[1] > y_1-g:
                   cell_domains[cell]=True
-          mesh_refine = refine(mesh, cell_domains, redistribute=True)
-    return mesh_refine
+          mesh = refine(mesh, cell_domains, redistribute=True)
+    return mesh
 
 def ramp_function(t):
     f = 1.0 + tanh(8*(t-0.5))

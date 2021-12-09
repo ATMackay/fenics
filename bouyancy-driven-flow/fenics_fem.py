@@ -270,7 +270,7 @@ def DGP_Mesh(mm, B, L):
 
     mesh1 = base_mesh
 
-    """
+
     # MESH CONSTRUCTION CODE
     nv= base_mesh.num_vertices()
     nc= base_mesh.num_cells()
@@ -300,15 +300,13 @@ def DGP_Mesh(mm, B, L):
     editor.init_vertices(nv)
     editor.init_cells(nc)
     for i in range(nv):
-        editor.add_vertex(i, r[i], l[i])
+        editor.add_vertex(i, np.array([r[i], l[i]]))
     for i in range(nc):
-        editor.add_cell(i, cells0[i], cells1[i], cells2[i])
+        editor.add_cell(i, np.array([cells0[i], cells1[i], cells2[i]], dtype=np.uintp))
 
 
     editor.close()
-    """
     return mesh1
-
 
 def DGP_structured_mesh(mm, x_0, y_0, x_1, y_1, B, L):
     nx=mm*B
@@ -340,9 +338,10 @@ def DGP_structured_mesh(mm, x_0, y_0, x_1, y_1, B, L):
     editor.init_vertices(nv)
     editor.init_cells(nc)
     for i in range(nv):
-        editor.add_vertex(i, r[i], l[i])
+        editor.add_vertex(i, np.array([r[i], l[i]]))
     for i in range(nc):
-        editor.add_cell(i, cells0[i], cells1[i], cells2[i])
+        editor.add_cell(i, np.array([cells0[i], cells1[i], cells2[i]], dtype=np.uintp))
+
     editor.close()
     
     return mesh1
