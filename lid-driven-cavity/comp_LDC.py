@@ -40,7 +40,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     T_f = simulation_time
     Tf = T_f
 
-    dt = 0.0005  #Time Stepping  
+    dt = 0.001  #Time Stepping  
     Tf = T_f
 
     tol = 10E-6
@@ -110,7 +110,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         # Choose Mesh to Use
 
         mesh = LDC_Regular_Mesh(mesh_resolution, B, L)
-        #mesh = refine_top(0, 0, B, L, mesh, 1)
+        mesh = refine_top(0, 0, B, L, mesh, 1)
 
         mplot(mesh)
         plt.savefig("fine_skewed_grid.png")
@@ -242,17 +242,17 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
         # Set parameters for primary loop ------------------------------------------------        
         if j==1:
-            Re = float(re_row[1])
+            Re = float(re_row[2])
             We = float(we_row[1])
             betav = 0.99
         elif j==2:
-            Re = float(re_row[1])
+            Re = float(re_row[2])
             We = float(we_row[2])
         elif j==3:
-            Re = float(re_row[1])
+            Re = float(re_row[2])
             We = float(we_row[3])
         elif j==4:
-            Re = float(re_row[1])
+            Re = float(re_row[2])
             We = float(we_row[4])
 
         # Continuation in Reynolds/Weissenberg Number Number (Re-->10Re)
@@ -796,40 +796,40 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 tau_xx1 = list(chunks(tau_xxg, mm))
                 tau_yy1 = list(chunks(tau_yyg, mm))
                 plt.figure(0)
-                plt.plot(x_axis1[0], u_y1[0], 'r-', label=r'$We=0$, $Re=50$')
-                plt.plot(x_axis1[1], u_y1[1], 'b-', label=r'$We=0.1$, $Re=50')
-                plt.plot(x_axis1[2], u_y1[2], 'c-', label=r'$We=0.25$, $Re=50$')
-                plt.plot(x_axis1[3], u_y1[3], 'g-', label=r'$We=0.5$, $Re=50$')
+                plt.plot(x_axis1[0], u_y1[0], 'r-', label=r'$We=0$, $Re=10$')
+                plt.plot(x_axis1[1], u_y1[1], 'b-', label=r'$We=0.1$, $Re=10')
+                plt.plot(x_axis1[2], u_y1[2], 'c-', label=r'$We=0.25$, $Re=10$')
+                plt.plot(x_axis1[3], u_y1[3], 'g-', label=r'$We=0.5$, $Re=10$')
                 plt.legend(loc='best')
                 plt.xlabel('x')
                 plt.ylabel('$u_y(x,0.75)$')
                 plt.savefig("plots/cross-section/u_yRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
                 plt.clf()
                 plt.figure(1)
-                plt.plot(u_x1[0], y_axis1[0], 'r-', label=r'$We=0$, $Re=50$')
-                plt.plot(u_x1[1], y_axis1[1], 'b-', label=r'$We=0.1$, $Re=50')
-                plt.plot(u_x1[2], y_axis1[2], 'c-', label=r'$We=0.25$, $Re=50$')
-                plt.plot(u_x1[3], y_axis1[3], 'g-', label=r'$We=0.5$, $Re=50$')
+                plt.plot(u_x1[0], y_axis1[0], 'r-', label=r'$We=0$, $Re=10$')
+                plt.plot(u_x1[1], y_axis1[1], 'b-', label=r'$We=0.1$, $Re=10')
+                plt.plot(u_x1[2], y_axis1[2], 'c-', label=r'$We=0.25$, $Re=10$')
+                plt.plot(u_x1[3], y_axis1[3], 'g-', label=r'$We=0.5$, $Re=10$')
                 plt.legend(loc='best')
                 plt.xlabel('$u_x(0.5,y)$')
                 plt.ylabel('y')
                 plt.savefig("plots/cross-section/u_xRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
                 plt.clf()
                 plt.figure(2)
-                plt.plot(x_axis1[0], tau_xx1[0], 'r-', label=r'$We=0$, $Re=50$')
-                plt.plot(x_axis1[1], tau_xx1[1], 'b-', label=r'$We=0.1$, $Re=50')
-                plt.plot(x_axis1[2], tau_xx1[2], 'c-', label=r'$We=0.25$, $Re=50$')
-                plt.plot(x_axis1[3], tau_xx1[3], 'g-', label=r'$We=0.5$, $Re=50$')
+                plt.plot(x_axis1[0], tau_xx1[0], 'r-', label=r'$We=0$, $Re=10$')
+                plt.plot(x_axis1[1], tau_xx1[1], 'b-', label=r'$We=0.1$, $Re=10')
+                plt.plot(x_axis1[2], tau_xx1[2], 'c-', label=r'$We=0.25$, $Re=10$')
+                plt.plot(x_axis1[3], tau_xx1[3], 'g-', label=r'$We=0.5$, $Re=10$')
                 plt.legend(loc='best')
                 plt.xlabel('x')
                 plt.ylabel('$\tau_{xx}(x,1.0)$')
                 plt.savefig("plots/cross-section/tau_xxRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
                 plt.clf()
                 plt.figure(3)
-                plt.plot(x_axis1[0], tau_yy1[0], 'r-', label=r'$We=0$, $Re=50$')
-                plt.plot(x_axis1[1], tau_yy1[1], 'b-', label=r'$We=0.1$, $Re=50')
-                plt.plot(x_axis1[2], tau_yy1[2], 'c-', label=r'$We=0.25$, $Re=50$')
-                plt.plot(x_axis1[3], tau_yy1[3], 'g-', label=r'$We=0.5$, $Re=50$')
+                plt.plot(x_axis1[0], tau_yy1[0], 'r-', label=r'$We=0$, $Re=10$')
+                plt.plot(x_axis1[1], tau_yy1[1], 'b-', label=r'$We=0.1$, $Re=10')
+                plt.plot(x_axis1[2], tau_yy1[2], 'c-', label=r'$We=0.25$, $Re=10$')
+                plt.plot(x_axis1[3], tau_yy1[3], 'g-', label=r'$We=0.5$, $Re=10$')
                 plt.legend(loc='best')
                 plt.xlabel('x')
                 plt.ylabel('$\tau_{yy}(x,1.0)$')
@@ -855,7 +855,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.plot(x2, ek2, 'b-', label=r'$Re=5$')
                 plt.plot(x3, ek3, 'c-', label=r'$Re=10$')
                 plt.plot(x4, ek4, 'm-', label=r'$Re=25$')
-                plt.plot(x5, ek5, 'g-', label=r'$Re=50$')
+                plt.plot(x5, ek5, 'g-', label=r'$Re=10$')
                 plt.legend(loc='best')
                 plt.xlabel('time(s)')
                 plt.ylabel('E_k')
@@ -867,7 +867,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.plot(x2, ee2, 'b-', label=r'$Re=5$')
                 plt.plot(x3, ee3, 'c-', label=r'$Re=10$')
                 plt.plot(x4, ee4, 'm-', label=r'$Re=25$')
-                plt.plot(x5, ee5, 'g-', label=r'$Re=50$')
+                plt.plot(x5, ee5, 'g-', label=r'$Re=10$')
                 plt.legend(loc='best')
                 plt.xlabel('time(s)')
                 plt.ylabel('E_e')
@@ -878,10 +878,10 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             if j==loopend:
                 # Kinetic Energy
                 plt.figure(0)
-                plt.plot(x1, ek1, 'r-', label=r'$We=0$, $Re=50$')
-                plt.plot(x2, ek2, 'b--', label=r'$We=0.5$, $Re=50$')
-                plt.plot(x3, ek3, 'c-', label=r'$We=0.25$, $Re50$')
-                plt.plot(x4, ek4, 'g-', label=r'$We=0.5$, $Re=50$')
+                plt.plot(x1, ek1, 'r-', label=r'$We=0$, $Re=10$')
+                plt.plot(x2, ek2, 'b--', label=r'$We=0.5$, $Re=10$')
+                plt.plot(x3, ek3, 'c-', label=r'$We=0.25$, $Re10$')
+                plt.plot(x4, ek4, 'g-', label=r'$We=0.5$, $Re=10$')
                 plt.legend(loc='best')
                 plt.xlabel('time(s)')
                 plt.ylabel('$E_k$')
@@ -889,10 +889,10 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.clf()
                 # Elastic Energy
                 plt.figure(1)
-                plt.plot(x1, ee1, 'r-', label=r'$We=0$, $Re=50$')
-                plt.plot(x2, ee2, 'b--', label=r'$We=0.5$, $Re=50$')
-                plt.plot(x3, ee3, 'c-', label=r'$We=0.25$, $Re50$')
-                plt.plot(x4, ee4, 'g-', label=r'$We=0.5$, $Re=50$')
+                plt.plot(x1, ee1, 'r-', label=r'$We=0$, $Re=10$')
+                plt.plot(x2, ee2, 'b--', label=r'$We=0.5$, $Re=10$')
+                plt.plot(x3, ee3, 'c-', label=r'$We=0.25$, $Re10$')
+                plt.plot(x4, ee4, 'g-', label=r'$We=0.5$, $Re=10$')
                 plt.legend(loc='best')
                 plt.xlabel('time(s)')
                 plt.ylabel('$E_e$')
@@ -1113,4 +1113,4 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("flow-parameters.csv", mesh_resolution=50, simulation_time=20.0, mesh_refinement=False)
+    main("flow-parameters.csv", mesh_resolution=40, simulation_time=20.0, mesh_refinement=False)
