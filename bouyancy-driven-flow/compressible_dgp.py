@@ -59,6 +59,9 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     Di = 0.005             #Diffusion Number
     Ma = 0.01
     al = 2.0
+    beta_0 = 300
+    beta_1 = 0
+    beta_2 = 1
 
     c1 = 0.05
     c2 = 0.001
@@ -406,10 +409,11 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
             # Use previous solutions to update nonisthermal paramters
             phi0 = project((T0+C)/(T_0+C)*(T0/T_0)**(3/2),Q)   
-            theta0 = project((T0-T_0)/(T_h-T_0), Q)           
-            therm = (1.0+al*theta0)
+            theta0 = project((T0-T_0)/(T_h-T_0), Q) 
+            al_1 = (beta_1 + beta_2 * T_0)/beta_0
+            al_2 = beta_2*(T_h-T_0)/beta_0          
+            therm = (al_1+al_2*theta0)
             therm_inv = project(1.0/therm, Q)
-            #c0 = c0*(1.0+al*T0/T_0) 
 
             (u0, D0_vec) = w0.split()
             D0 = as_matrix([[D0_vec[0], D0_vec[1]],
@@ -435,7 +439,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             # compute u^{n+1/2} velocity half-step
             Du12Dt = rho0*(2.0*(u - u0) / dt + dot(u0, nabla_grad(u0)))
             Fu12 = dot(Du12Dt, v)*dx + \
-                + inner(sigmacom(U, p0, tau0, We, Pr, betav), Dincomp(v))*dx + Ra*Pr*inner(rho0*f,v)*dx \
+                + inner(sigmacom(U, p0, tau0, We, Pr, betav), Dincomp(v))*dx + Ra*Pr*inner(rho0*therm_inv*f,v)*dx \
                 + dot(p0*n, v)*ds - betav*Pr*(dot(nabla_grad(U)*n, v)*ds + (1.0/3)*dot(div(U)*n,v)*ds)\
                 - (Pr*(1-betav)/We)*dot(tau0*n, v)*ds\
                 + inner(D-Dincomp(u),R)*dx 
@@ -492,7 +496,6 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             end()
             (us, Ds_vec) = ws.split()
             
-
 
             # compute p^{n+1} using the continutity equation
             lhs_p_1 = (Ma*Ma/(dt))*p
