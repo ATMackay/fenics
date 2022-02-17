@@ -189,6 +189,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         ramp_function = Expression('0.5*(1+tanh(8*(t-0.5)))*(T_h-T_0)+T_0', degree=2, t=0.0, T_0=T_0, T_h=T_h)
         # direction of gravitational force (0,-1)
         f = Expression(('0','-1'), degree=2)
+        k = Expression(('0','1'), degree=2)
 
 
         # Mesh functions
@@ -439,7 +440,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             # compute u^{n+1/2} velocity half-step
             Du12Dt = rho0*(2.0*(u - u0) / dt + dot(u0, nabla_grad(u0)))
             Fu12 = dot(Du12Dt, v)*dx + \
-                + inner(sigmacom(U, p0, tau0, We, Pr, betav), Dincomp(v))*dx + Ra*Pr*inner(rho0*therm_inv*f,v)*dx \
+                + inner(sigmacom(U, p0, tau0, We, Pr, betav), Dincomp(v))*dx + Ra*Pr*inner(rho0*therm_inv*k,v)*dx \
                 + dot(p0*n, v)*ds - betav*Pr*(dot(nabla_grad(U)*n, v)*ds + (1.0/3)*dot(div(U)*n,v)*ds)\
                 - (Pr*(1-betav)/We)*dot(tau0*n, v)*ds\
                 + inner(D-Dincomp(u),R)*dx 
@@ -480,7 +481,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             # Compute u* 
             lhsFus = rho0*((u - u0)/dt + dot(u12, nabla_grad(U)))
             Fus = dot(lhsFus, v)*dx + \
-                + inner(sigmacom(U, p0, tau0, We, Pr, betav), Dincomp(v))*dx + Ra*Pr*inner(rho0*f,v)*dx \
+                + inner(sigmacom(U, p0, tau0, We, Pr, betav), Dincomp(v))*dx + Ra*Pr*inner(rho0*therm_inv*k,v)*dx \
                 + dot(p0*n, v)*ds - betav*Pr*(dot(nabla_grad(U)*n, v)*ds + (1.0/3)*dot(div(U)*n,v)*ds) \
                 - (Pr*(1.0-betav)/We)*dot(tau0*n, v)*ds\
                 + inner(D-Dincomp(u),R)*dx             
@@ -976,7 +977,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("flow-parameters.csv", mesh_resolution=50, simulation_time=0.15, mesh_refinement=False)
+    main("flow-parameters.csv", mesh_resolution=50, simulation_time=10, mesh_refinement=False)
 
 
 
