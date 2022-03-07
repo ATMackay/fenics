@@ -50,7 +50,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     U = 1
     betav = 0.99    
     Ra = 10000             # Rayleigh Number
-    Pr = 1.0
+    Pr = 2.0
     We = 0.01              # Weisenberg NUmber
     Vh = 0.005
     T_0 = 300
@@ -62,6 +62,8 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     beta_0 = 300
     beta_1 = 0
     beta_2 = 1
+    al_1 = (beta_1 + beta_2 * T_0)/beta_0
+    al_2 = beta_2*(T_h-T_0)/beta_0
 
     c1 = 0.05
     c2 = 0.001
@@ -227,7 +229,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         with open(input_csv, 'r') as csvfile:
             spamreader = csv.reader(csvfile)
             my_csv_data = list(spamreader)
-            re_row = my_csv_data[0]
+            ra_row = my_csv_data[0]
             we_row = my_csv_data[1]
             ma_row = my_csv_data[2]
 
@@ -239,17 +241,17 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
         # Set parameters for primary loop ------------------------------------------------        
         if j==1:
-            Ra = float(re_row[1])
-            We = float(we_row[1])
+            Ra = float(ra_row[1])
+            We = float(we_row[3])
         elif j==2:
-            Ra = float(re_row[1])
-            We = float(we_row[2])
+            Ra = float(ra_row[2])
+            We = float(we_row[3])
         elif j==3:
-            Ra = float(re_row[1])
-            We = float(we_row[4])
+            Ra = float(ra_row[3])
+            We = float(we_row[3])
         elif j==4:
-            Ra = float(re_row[2])
-            We = float(we_row[4])
+            Ra = float(ra_row[3])
+            We = float(we_row[2])
 
         print('############# TIME SCALE ############')
         print('Timestep size (s):', dt)
@@ -380,7 +382,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         t = 0.0
         iter = 0            # iteration counter
         while t < Tf + DOLFIN_EPS:
-            flow_description = "compressible bouyancy-driven flow: loop: " +str(jjj) + ", Ra: "+str(Ra)+", We: "+str(We)+", Ma: "+str(Ma)+", Pr: "+str(Pr)+", al: "+str(al)+", betav: "+str(betav)
+            flow_description = "compressible bouyancy-driven flow: loop: " +str(j) + ", Ra: "+str(Ra)+", We: "+str(We)+", Ma: "+str(Ma)+", Pr: "+str(Pr)+", al_1: "+str(al_1)+", al_2: "+str(al_2)+", betav: "+str(betav)
             update_progress(flow_description, t/Tf) # Update progress bar
             iter += 1
             # Set Function timestep
@@ -691,6 +693,8 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 with open("results/Compressible-ConformEnergy.txt", "a") as text_file:
                     text_file.write("Ra="+str(Ra)+", We="+str(We)+", Ma="+str(Ma)+"-------peak Kinetic Energy: "+str(peakEk3)+"Incomp Kinetic En"+str(peakEk1)+'\n')
 
+            plt.clf()
+            plt.close()
             # Plot Mesh Convergence Data 
             """if max(norm(w1.vector(),'linf'),norm(p1.vector(), 'linf')) < 10E6 and j==5:
             # Kinetic Energy
@@ -717,245 +721,275 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             plt.savefig("results/Stability-Convergence/Mesh_ElasticEnergyRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"dt="+str(dt)+".png")
             plt.clf()"""
 
-                #Plot Kinetic and elasic Energies for different REYNOLDS numbers at constant Weissenberg Number    
-            """if max(norm(w1.vector(),'linf'),norm(p1.vector(), 'linf')) < 10E6 and j==5:
+            # Plot Kinetic and elasic Energies for different REYNOLDS numbers at constant Weissenberg Number    
             # Kinetic Energy
             plt.figure(0)
-            plt.plot(x1, ek1, 'r-', label=r'$Ra=0$')
-            plt.plot(x2, ek2, 'b-', label=r'$Ra=5$')
-            plt.plot(x3, ek3, 'c-', label=r'$Ra=10$')
-            plt.plot(x4, ek4, 'm-', label=r'$Ra=25$')
-            plt.plot(x5, ek5, 'g-', label=r'$Ra=50$')
+            plt.plot(x1, ek1, 'r-', label=r'$Ra=500$,$We=0.25$')
+            plt.plot(x2, ek2, 'b-', label=r'$Ra=1000$,$We=0.25$')
+            plt.plot(x3, ek3, 'c-', label=r'$Ra=2000$,$We=0.25$')
+            plt.plot(x4, ek4, 'm-', label=r'$Ra=2000$,$We=0.1$')
+            #plt.plot(x5, ek5, 'g-', label=r'$Ra=50$')
+            plt.legend(loc='best')
+            plt.xlabel('$t$')
+            plt.ylabel('$E_k$')
+            plt.savefig("plots/compressible-flow/Fixed_We_KineticEnergyRa="+str(Ra)+"We="+str(We)+", Pr="+str(Ra)+"b="+str(betav)+"dt="+str(dt)+".png")
+            plt.clf()
+            plt.close()
+            # Elastic Energy
+            plt.figure(1)
+            plt.plot(x1, ee1, 'r-', label=r'$Ra=500$,$We=0.25$')
+            plt.plot(x2, ee2, 'b-', label=r'$Ra=1000$,$We=0.25$')
+            plt.plot(x3, ee3, 'c-', label=r'$Ra=2000$,$We=0.25$')
+            plt.plot(x4, ee4, 'm-', label=r'$Ra=2000$,$We=0.1$')
+            #plt.plot(x5, ee5, 'g-', label=r'$Ra=50$')
+            plt.legend(loc='best')
+            plt.xlabel('$t$')
+            plt.ylabel('$E_e$')
+            plt.savefig("plots/compressible-flow/Fixed_We_ElasticEnergyRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"dt="+str(dt)+".png")
+            plt.clf()
+
+            plt.close()
+
+            plt.figure(2)
+            plt.plot(x1, nus1, 'r-', label=r'$Ra=500$,$We=0.25$')
+            plt.plot(x2, nus2, 'b-', label=r'$Ra=1000$,$We=0.25$')
+            plt.plot(x3, nus3, 'c-', label=r'$Ra=2000$,$We=0.25$')
+            plt.plot(x4, nus4, 'm-', label=r'$Ra=2000$,$We=0.1$')
+            #plt.plot(x5, ee5, 'g-', label=r'$We=2.0$')
+            plt.legend(loc='best')
+            plt.xlabel('time(s)')
+            plt.ylabel('$N_u$')
+            plt.savefig("plots/compressible-flow/NussletNumberTf="+str(Tf)+"Ra="+str(Ra)+"b="+str(betav)+"mesh="+str(mm)+"dt="+str(dt)+".png")
+            plt.clf()
+
+            
+            #Plot Kinetic and elasic Energies for different Weissenberg numbers at Re=0 (METHOD 2)
+            # Kinetic Energy
+            """plt.figure(0)
+            plt.plot(x1, ek1, 'r-', label=r'$We=0.0, Ra=500$')
+            plt.plot(x2, ek2, 'b-', label=r'$We=0.1, Ra=500$')
+            plt.plot(x3, ek3, 'c-', label=r'$We=0.5, Ra=500$')
+            plt.plot(x4, ek4, 'm-', label=r'$We=0.5, Ra=750$')
+            #plt.plot(x5, ek5, 'g-', label=r'$We=2.0$')
+            plt.legend(loc='best')
+            plt.xlabel('time(s)')
+            plt.ylabel('$E_k$')
+            plt.savefig("plots/compressible-flow/KineticEnergyTf="+str(Tf)+"Ra="+str(Ra)+"b="+str(betav)+"mesh="+str(mm)+"dt="+str(dt)+".png")
+            plt.clf()
+            # Elastic Energy
+            plt.figure(1)
+            plt.plot(x1, ee1, 'r-', label=r'$We=0.0, Ra=500$')
+            plt.plot(x2, ee2, 'b-', label=r'$We=0.1, Ra=500$')
+            plt.plot(x3, ee3, 'c-', label=r'$We=0.5, Ra=500$')
+            plt.plot(x4, ee4, 'm-', label=r'$We=0.5, Ra=750$')
+            #plt.plot(x5, ee5, 'g-', label=r'$We=2.0$')
+            plt.legend(loc='best')
+            plt.xlabel('time(s)')
+            plt.ylabel('$E_e$')
+            plt.savefig("plots/compressible-flow/ElasticEnergyTf="+str(Tf)+"Ra="+str(Ra)+"b="+str(betav)+"mesh="+str(mm)+"dt="+str(dt)+".png")
+            plt.clf()
+
+            plt.figure(2)
+            plt.plot(x1, nus1, 'r-', label=r'$We=0.0, Ra=500$')
+            plt.plot(x2, nus2, 'b-', label=r'$We=0.1, Ra=500$')
+            plt.plot(x3, nus3, 'c-', label=r'$We=0.5, Ra=500$')
+            plt.plot(x4, nus4, 'm-', label=r'$We=0.5, Ra=750$')
+            #plt.plot(x5, ee5, 'g-', label=r'$We=2.0$')
+            plt.legend(loc='best')
+            plt.xlabel('time(s)')
+            plt.ylabel('$N_u$')
+            plt.savefig("plots/compressible-flow/NussletNumberTf="+str(Tf)+"Ra="+str(Ra)+"b="+str(betav)+"mesh="+str(mm)+"dt="+str(dt)+".png")
+            plt.clf()"""
+
+            """# Kinetic Energy
+            plt.figure(0)
+            plt.plot(x1, ek1, 'r-', label=r'$We=0$')
             plt.legend(loc='best')
             plt.xlabel('time(s)')
             plt.ylabel('E_k')
-            plt.savefig("results/Energy/Fixed_We_KineticEnergyRa="+str(Ra+"We="+str(We)+"b="+str(betav)+"dt="+str(dt)+".png")
+            plt.savefig("Inresults/Energy/KineticEnergyTf="+str(Tf)+"Ra="+str(Ra)+"b="+str(betav)+"mesh="+str(mm)+"dt="+str(dt)+".png")
+            plt.clf()
             # Elastic Energy
             plt.figure(1)
-            plt.plot(x1, ee1, 'r-', label=r'$Ra=0$')
-            plt.plot(x2, ee2, 'b-', label=r'$Ra=5$')
-            plt.plot(x3, ee3, 'c-', label=r'$Ra=10$')
-            plt.plot(x4, ee4, 'm-', label=r'$Ra=25$')
-            plt.plot(x5, ee5, 'g-', label=r'$Ra=50$')
+            plt.plot(x1, ee1, 'r-', label=r'$We=0$')
+            plt.xlabel('time(s)')
+            plt.ylabel('E_e')
+            plt.savefig("Inresults/Energy/ElasticEnergyTf="+str(Tf)+"Ra="+str(Ra)+"b="+str(betav)+"mesh="+str(mm)+"dt="+str(dt)+".png")
+            plt.clf()"""
+
+
+            # Comparing Kinetic & Elastic Energies for different Stablisation parameters
+            """if max(norm(w1.vector(),'linf'),norm(p1.vector(), 'linf')) < 10E5 and abs(E_k) < 10 and j==3 or j==1:
+            # Kinetic Energy
+            plt.figure(0)
+            plt.plot(x1, ek1, 'r-', label=r'$\theta=0$')
+            plt.plot(x2, ek2, 'b-', label=r'$\theta=(1-\beta)/10$')
+            plt.plot(x3, ek3, 'c-', label=r'$\theta=1-\beta$')
+            plt.legend(loc='best')
+            plt.xlabel('time(s)')
+            plt.ylabel('E_k')
+            plt.savefig("Inresults/Energy/KineticEnergyTf="+str(Tf)+"Re"+str(Rey*conv)+"b="+str(betav)+"We="+str(We)+"dt="+str(dt)+".png")
+            plt.clf()
+            # Elastic Energy
+            plt.figure(1)
+            plt.plot(x1, ee1, 'r-', label=r'$\theta=0$')
+            plt.plot(x2, ee2, 'b-', label=r'$\theta=(1-\beta)/10$')
+            plt.plot(x3, ee3, 'c-', label=r'$\theta=\beta$')
             plt.legend(loc='best')
             plt.xlabel('time(s)')
             plt.ylabel('E_e')
-            plt.savefig("results/Energy/Fixed_We_ElasticEnergyRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"dt="+str(dt)+".png")
+            plt.savefig("plotsElasticEnergyTf="+str(Tf)+"Re"+str(Rey*conv)+"b="+str(betav)+"We="+str(We)+"dt="+str(dt)+".png")
             plt.clf()"""
 
-            plt.close()
-            if j==1 or j==loopend:
-                #Plot Kinetic and elasic Energies for different Weissenberg numbers at Re=0 (METHOD 2)
-                # Kinetic Energy
-                plt.figure(0)
-                plt.plot(x1, ek1, 'r-', label=r'$We=0.0$')
-                plt.plot(x2, ek2, 'b-', label=r'$We=0.1$')
-                plt.plot(x3, ek3, 'c-', label=r'$We=0.5$')
-                plt.plot(x4, ek4, 'm-', label=r'$We=1.0$')
-                plt.plot(x5, ek5, 'g-', label=r'$We=2.0$')
-                plt.legend(loc='best')
-                plt.xlabel('time(s)')
-                plt.ylabel('E_k')
-                plt.savefig("plots/compressible-flow/KineticEnergyTf="+str(Tf)+"Ra="+str(Ra)+"b="+str(betav)+"mesh="+str(mm)+"dt="+str(dt)+".png")
-                plt.clf()
-                # Elastic Energy
-                plt.figure(1)
-                plt.plot(x1, ee1, 'r-', label=r'$We=0.0$')
-                plt.plot(x2, ee2, 'b-', label=r'$We=0.1$')
-                plt.plot(x3, ee3, 'c-', label=r'$We=0.5$')
-                plt.plot(x4, ee4, 'm-', label=r'$We=1.0$')
-                plt.plot(x5, ee5, 'g-', label=r'$We=2.0$')
-                plt.legend(loc='best')
-                plt.xlabel('time(s)')
-                plt.ylabel('E_e')
-                plt.savefig("plots/compressible-flow/ElasticEnergyTf="+str(Tf)+"Ra="+str(Ra)+"b="+str(betav)+"mesh="+str(mm)+"dt="+str(dt)+".png")
-                plt.clf()
+
+            # Plot Stress/Normal Stress Difference
+            tau_xx=project(tau1[0,0],Q)
+            mplot(tau_xx)
+            plt.colorbar()
+            plt.savefig("plots/compressible-flow/tau_xxRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+"Stabilisation"+str(th)+".png")
+            plt.clf() 
+            tau_xy=project(tau1[1,0],Q)
+            mplot(tau_xy)
+            plt.colorbar()
+            plt.savefig("plots/compressible-flow/tau_xyRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+"Stabilisation"+str(th)+".png")
+            plt.clf() 
+            tau_yy=project(tau1[1,1],Q)
+            mplot(tau_yy)
+            plt.colorbar()
+            plt.savefig("plots/compressible-flow/tau_yyRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+"Stabilisation"+str(th)+".png")
+            plt.clf() 
+            theta0 = project(theta0, Q)
+            mplot(theta0)
+            plt.colorbar()
+            plt.savefig("plots/compressible-flow/TemperatureRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+".png")
+            plt.clf()
+
+            # Plot Velocity Components
+            ux=project(u1[0],Q)
+            mplot(ux)
+            plt.colorbar()
+            plt.savefig("plots/compressible-flow/u_xRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+"Stabilisation"+str(c1)+".png")
+            plt.clf()
+            uy=project(u1[1],Q)
+            mplot(uy)
+            plt.colorbar()
+            plt.savefig("plots/compressible-flow/u_yRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+"Stabilisation"+str(c1)+".png")
+            plt.clf()
+
+            # Matlab Plot of the Solution at t=Tf
+            rho1=project(rho1,Q)
+            mplot(rho1)
+            plt.colorbar()
+            plt.savefig("plots/compressible-flow/DensityRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.clf() 
+
+            mplot(p1)
+            plt.colorbar()
+            plt.savefig("plots/compressible-flow/PressureRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.clf()
+
+            mplot(T1)
+            plt.colorbar()
+            plt.savefig("plots/compressible-flow/TemperatureRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.clf()
+
+            mplot(psi)
+            plt.colorbar()
+            plt.savefig("plots/compressible-flow/stream_functionRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.clf()
+
+            mplot(gamma)
+            plt.colorbar()
+            plt.savefig("plots/compressible-flow/shear_rateRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.clf()
+
+            #Plot Contours USING MATPLOTLIB
+                # Scalar Function code
 
 
-                """if max(norm(w1.vector(),'linf'),norm(p1.vector(), 'linf')) < 10E6 and j==1:
-                # Kinetic Energy
-                plt.figure(0)
-                plt.plot(x1, ek1, 'r-', label=r'$We=0$')
-                plt.legend(loc='best')
-                plt.xlabel('time(s)')
-                plt.ylabel('E_k')
-                plt.savefig("Inresults/Energy/KineticEnergyTf="+str(Tf)+"Ra="+str(Ra)+"b="+str(betav)+"mesh="+str(mm)+"dt="+str(dt)+".png")
-                plt.clf()
-                # Elastic Energy
-                plt.figure(1)
-                plt.plot(x1, ee1, 'r-', label=r'$We=0$')
-                plt.xlabel('time(s)')
-                plt.ylabel('E_e')
-                plt.savefig("Inresults/Energy/ElasticEnergyTf="+str(Tf)+"Ra="+str(Ra)+"b="+str(betav)+"mesh="+str(mm)+"dt="+str(dt)+".png")
-                plt.clf()"""
+            x = Expression('x[0]', degree=2)     #GET X-COORDINATES LIST
+            y = Expression('x[1]', degree=2)     #GET Y-COORDINATES LIST
+            pvals = p1.vector().get_local()          # GET SOLUTION p= p(x,y) list
+            Tvals = theta0.vector().get_local() 
+            psiq = project(psi, Q)
+            psivals = psiq.vector().get_local() 
+            tauxx = project(tau1_vec[0], Q)
+            tauxxvals = tauxx.vector().get_local()
+            xyvals = mesh.coordinates()     # CLEAN THIS UP!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            xvalsq = interpolate(x, Q)#xyvals[:,0]
+            yvalsq= interpolate(y, Q)#xyvals[:,1]
+            xvalsw = interpolate(x, Qt)#xyvals[:,0]
+            yvalsw= interpolate(y, Qt)#xyvals[:,1]
+
+            xvals = xvalsq.vector().get_local()
+            yvals = yvalsq.vector().get_local()
+
+            # Create 2D array with mesh coordinate points
+            points = np.vstack((xvals, yvals)).T
 
 
-                # Comparing Kinetic & Elastic Energies for different Stablisation parameters
-                """if max(norm(w1.vector(),'linf'),norm(p1.vector(), 'linf')) < 10E5 and abs(E_k) < 10 and j==3 or j==1:
-                # Kinetic Energy
-                plt.figure(0)
-                plt.plot(x1, ek1, 'r-', label=r'$\theta=0$')
-                plt.plot(x2, ek2, 'b-', label=r'$\theta=(1-\beta)/10$')
-                plt.plot(x3, ek3, 'c-', label=r'$\theta=1-\beta$')
-                plt.legend(loc='best')
-                plt.xlabel('time(s)')
-                plt.ylabel('E_k')
-                plt.savefig("Inresults/Energy/KineticEnergyTf="+str(Tf)+"Re"+str(Rey*conv)+"b="+str(betav)+"We="+str(We)+"dt="+str(dt)+".png")
-                plt.clf()
-                # Elastic Energy
-                plt.figure(1)
-                plt.plot(x1, ee1, 'r-', label=r'$\theta=0$')
-                plt.plot(x2, ee2, 'b-', label=r'$\theta=(1-\beta)/10$')
-                plt.plot(x3, ee3, 'c-', label=r'$\theta=\beta$')
-                plt.legend(loc='best')
-                plt.xlabel('time(s)')
-                plt.ylabel('E_e')
-                plt.savefig("plotsElasticEnergyTf="+str(Tf)+"Re"+str(Rey*conv)+"b="+str(betav)+"We="+str(We)+"dt="+str(dt)+".png")
-                plt.clf()"""
+            xx = np.linspace(0,1)
+            yy = np.linspace(0,1)
+            XX, YY = np.meshgrid(xx,yy)   # (x,y) coordinate data formatted so that it can be used by plt.contour()
+                # Pressure
+            pp = sci.griddata(points, pvals, (XX, YY), method='linear') # u(x,y) data so that it can be used by 
+            pp = np.reshape(pp, (len(xx), len(yy))) # Reshape to 2D array
+            TT = sci.griddata(points, Tvals, (XX, YY), method='linear')
+            TT = np.reshape(TT, (len(xx), len(yy))) # Reshape to 2D array
+            ps = sci.griddata(points, psivals, (XX, YY), method='linear')
+            ps = np.reshape(ps, (len(xx), len(yy))) # Reshape to 2D array
 
 
-                # Plot Stress/Normal Stress Difference
-                tau_xx=project(tau1[0,0],Q)
-                mplot(tau_xx)
-                plt.colorbar()
-                plt.savefig("plots/compressible-flow/tau_xxRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+"Stabilisation"+str(th)+".png")
-                plt.clf() 
-                tau_xy=project(tau1[1,0],Q)
-                mplot(tau_xy)
-                plt.colorbar()
-                plt.savefig("plots/compressible-flow/tau_xyRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+"Stabilisation"+str(th)+".png")
-                plt.clf() 
-                tau_yy=project(tau1[1,1],Q)
-                mplot(tau_yy)
-                plt.colorbar()
-                plt.savefig("plots/compressible-flow/tau_yyRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+"Stabilisation"+str(th)+".png")
-                plt.clf() 
-                theta0 = project(theta0, Q)
-                mplot(theta0)
-                plt.colorbar()
-                plt.savefig("plots/compressible-flow/TemperatureRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+".png")
-                plt.clf()
-
-                # Plot Velocity Components
-                ux=project(u1[0],Q)
-                mplot(ux)
-                plt.colorbar()
-                plt.savefig("plots/compressible-flow/u_xRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+"Stabilisation"+str(c1)+".png")
-                plt.clf()
-                uy=project(u1[1],Q)
-                mplot(uy)
-                plt.colorbar()
-                plt.savefig("plots/compressible-flow/u_yRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+"Stabilisation"+str(c1)+".png")
-                plt.clf()
-
-                # Matlab Plot of the Solution at t=Tf
-                rho1=project(rho1,Q)
-                mplot(rho1)
-                plt.colorbar()
-                plt.savefig("plots/compressible-flow/DensityRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                plt.clf() 
-                mplot(p1)
-                plt.colorbar()
-                plt.savefig("plots/compressible-flow/PressureRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                plt.clf()
-                mplot(T1)
-                plt.colorbar()
-                plt.savefig("plots/compressible-flow/TemperatureRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                plt.clf()
-                psi = stream_function(u1)
-                mplot(psi)
-                plt.colorbar()
-                plt.savefig("plots/compressible-flow/stream_functionRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-                plt.clf()
+            plt.contour(XX, YY, pp, 25)
+            plt.title('Pressure Contours')   # PRESSURE CONTOUR PLOT
+            plt.colorbar() 
+            plt.savefig("plots/compressible-flow/PressureContoursRa="+str(Ra)+"Pr="+str(Pr)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+".png")
+            plt.clf()
 
 
-                #Plot Contours USING MATPLOTLIB
-                    # Scalar Function code
+            plt.contour(XX, YY, TT, 20)
+            plt.title('Temperature Contours')   # PRESSURE CONTOUR PLOT
+            plt.colorbar() 
+            plt.savefig("plots/compressible-flow/TemperatureContoursRa="+str(Ra)+"Pr="+str(Pr)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+".png")
+            plt.clf()
+
+            plt.contour(XX, YY, ps, 15)
+            plt.title('Streamline Contours')   # PRESSURE CONTOUR PLOT
+            plt.colorbar() 
+            plt.savefig("plots/compressible-flow/StreamlineContoursRa="+str(Ra)+"Pr="+str(Pr)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+".png")
+            plt.clf()
 
 
-                x = Expression('x[0]', degree=2)     #GET X-COORDINATES LIST
-                y = Expression('x[1]', degree=2)     #GET Y-COORDINATES LIST
-                pvals = p1.vector().get_local()          # GET SOLUTION p= p(x,y) list
-                Tvals = theta0.vector().get_local() 
-                psiq = project(psi, Q)
-                psivals = psiq.vector().get_local() 
-                tauxx = project(tau1_vec[0], Q)
-                tauxxvals = tauxx.vector().get_local()
-                xyvals = mesh.coordinates()     # CLEAN THIS UP!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                xvalsq = interpolate(x, Q)#xyvals[:,0]
-                yvalsq= interpolate(y, Q)#xyvals[:,1]
-                xvalsw = interpolate(x, Qt)#xyvals[:,0]
-                yvalsw= interpolate(y, Qt)#xyvals[:,1]
+            #Plot Velocity Streamlines USING MATPLOTLIB
+            u1_q = project(u1[0],Q)
+            uvals = u1_q.vector().get_local()
+            v1_q = project(u1[1],Q)
+            vvals = v1_q.vector().get_local()
 
-                xvals = xvalsq.vector().get_local()
-                yvals = yvalsq.vector().get_local()
+            #Merge arrays
+            points = np.vstack((xvals, yvals)).T
 
-                # Create 2D array with mesh coordinate points
-                points = np.vstack((xvals, yvals)).T
+            uu = sci.griddata(points, uvals, (XX, YY), method='linear') 
+            vv = sci.griddata(points, vvals, (XX, YY), method='linear') 
 
+            # Set all nan values to DOLFIN_EPS (close to zero)
+            uu = np.nan_to_num(uu, nan = 0)
+            vv = np.nan_to_num(vv, nan = 0)
+            # Reshape
+            uu = np.reshape(uu, (len(yy), len(xx))) # Reshape to 2D array
+            vv = np.reshape(vv, (len(yy), len(xx))) # Reshape to 2D array
 
-                xx = np.linspace(0,1)
-                yy = np.linspace(0,1)
-                XX, YY = np.meshgrid(xx,yy)   # (x,y) coordinate data formatted so that it can be used by plt.contour()
-                    # Pressure
-                pp = sci.griddata(points, pvals, (XX, YY), method='linear') # u(x,y) data so that it can be used by 
-                pp = np.reshape(pp, (len(xx), len(yy))) # Reshape to 2D array
-                TT = sci.griddata(points, Tvals, (XX, YY), method='linear')
-                TT = np.reshape(TT, (len(xx), len(yy))) # Reshape to 2D array
-                ps = sci.griddata(points, psivals, (XX, YY), method='linear')
-                ps = np.reshape(ps, (len(xx), len(yy))) # Reshape to 2D array
-
-
-                plt.contour(XX, YY, pp, 25)
-                plt.title('Pressure Contours')   # PRESSURE CONTOUR PLOT
-                plt.colorbar() 
-                plt.savefig("plots/compressible-flow/PressureContoursRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+".png")
-                plt.clf()
-
-
-                plt.contour(XX, YY, TT, 20)
-                plt.title('Temperature Contours')   # PRESSURE CONTOUR PLOT
-                plt.colorbar() 
-                plt.savefig("plots/compressible-flow/TemperatureContoursRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+".png")
-                plt.clf()
-
-                plt.contour(XX, YY, ps, 15)
-                plt.title('Streamline Contours')   # PRESSURE CONTOUR PLOT
-                plt.colorbar() 
-                plt.savefig("plots/compressible-flow/StreamlineContoursRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+".png")
-                plt.clf()
-
-
-                #Plot Velocity Streamlines USING MATPLOTLIB
-                u1_q = project(u1[0],Q)
-                uvals = u1_q.vector().get_local()
-                v1_q = project(u1[1],Q)
-                vvals = v1_q.vector().get_local()
-
-                #Merge arrays
-                points = np.vstack((xvals, yvals)).T
-
-                uu = sci.griddata(points, uvals, (XX, YY), method='linear') 
-                vv = sci.griddata(points, vvals, (XX, YY), method='linear') 
-
-                # Set all nan values to DOLFIN_EPS (close to zero)
-                uu = np.nan_to_num(uu, nan = 0)
-                vv = np.nan_to_num(vv, nan = 0)
-                # Reshape
-                uu = np.reshape(uu, (len(yy), len(xx))) # Reshape to 2D array
-                vv = np.reshape(vv, (len(yy), len(xx))) # Reshape to 2D array
-
-                speed = np.sqrt(uu*uu+ vv*vv)
-                plt.streamplot(XX, YY, uu, vv,  
-                            density=3,              
-                            color=speed,  
-                            cmap=cm.gnuplot,                         # colour map
-                            linewidth=0.8)                           # line thickness
-                                                                        # arrow size
-                plt.colorbar()                                          # add colour bar on the right
-                plt.title('bouyancy driven flow')
-                plt.savefig("plots/compressible-flow/VelocityContoursRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+".png")   
-                plt.clf()                                           # display the plot
+            speed = np.sqrt(uu*uu+ vv*vv)
+            plt.streamplot(XX, YY, uu, vv,  
+                        density=3,              
+                        color=speed,  
+                        cmap=cm.gnuplot,                         # colour map
+                        linewidth=0.8)                           # line thickness
+                                                                    # arrow size
+            plt.colorbar()                                          # add colour bar on the right
+            plt.title('bouyancy driven flow')
+            plt.savefig("plots/compressible-flow/VelocityContoursRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"t="+str(t)+".png")   
+            plt.clf()                                           # display the plot
 
 
             plt.close()
@@ -977,7 +1011,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("flow-parameters.csv", mesh_resolution=50, simulation_time=10, mesh_refinement=False)
+    main("flow-parameters.csv", mesh_resolution=50, simulation_time=15, mesh_refinement=False)
 
 
 
