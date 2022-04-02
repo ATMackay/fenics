@@ -74,26 +74,6 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 
     # FEM Solution Convergence/Energy Plot
-    x1=list()
-    x2=list()
-    x3=list()
-    x4=list()
-    x5=list()
-    y=list()
-    z=list()
-    zz=list()
-    zzz=list()
-    zl=list()
-    ek1=list()
-    ek2=list()
-    ek3=list()
-    ek4=list()
-    ee1=list()
-    ee2=list()
-    ee3=list()
-    ee4=list()
-    ek5=list()
-    ee5=list()
     x_axis=list()
     y_axis=list()
     u_xg = list()
@@ -109,8 +89,8 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         # DEFINE THE COMPUTATION GRID
         # Choose Mesh to Use
 
-        mesh = LDC_Regular_Mesh(mesh_resolution, B, L)
-        mesh = refine_top(0, 0, B, L, mesh, 1)
+        mesh = Skew_Mesh(mm, B, L)
+        mesh = refine_top(0, 0, B, L, mesh, 1, 0.025)
 
         mplot(mesh)
         plt.savefig("fine_skewed_grid.png")
@@ -370,11 +350,10 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         # Use nonzero guesses - essential for CG with non-symmetric BC
         parameters['krylov_solver']['nonzero_initial_guess'] = True
 
-        #Lists for Energy Values
-        x=list()
-        ee=list()
-        ek=list()
-        z=list()
+        # Array for storing for energy data
+        t_array=list()
+        ek_array=list()
+        ee_array=list()
 
         conerr=list()
         deferr=list()
@@ -601,45 +580,12 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 
             # Record Elastic & Kinetic Energy Values (Method 1)
-            if j==1:
-                x1.append(t)
-                ek1.append(E_k)
-                ee1.append(E_e)
-            if j==2:
-                x2.append(t)
-                ek2.append(E_k)
-                ee2.append(E_e)
-            if j==3:
-                x3.append(t)
-                ek3.append(E_k)
-                ee3.append(E_e)
-            if j==4:
-                x4.append(t)
-                ek4.append(E_k)
-                ee4.append(E_e)
-            if j==5:
-                x5.append(t)
-                ek5.append(E_k)
-                ee5.append(E_e)
+            t_array.append(t)
+            ek_array.append(E_k)
+            ee_array.append(E_e)
 
-            # Record Error Data
-            #err = project(h*kapp,Qt)
-            x.append(t)
-            #ee.append(norm(err.vector(),'linf'))
-            ek.append(norm(tau1_vec.vector(),'linf'))
-
-            # Plot solution
-            #if t>0.1:
-                #plot(Dcomp(u1)[0,0], title="Deformation Grad xx", rescale=True, interactive=False)
-                #plot(D1_vec[0], title="Deformation Grad xx", rescale=True, interactive=False)
-                #plot(l2_kapp, title="tau_xy Stress", rescale=True, interactive=False)
-                #plot(tau1[0,0], title="tau_xx Stress", rescale=True, interactive=False)
-                #plot(p1, title="Pressure", rescale=True)
-                #plot(rho1, title="Density", rescale=True)
-                #plot(u1, title="Velocity", rescale=True, mode = "auto")
-                #plot(T1, title="Temperature", rescale=True)
             
-             # Update Solutions
+            # Update Solutions
             w0.assign(w1)
             T0.assign(T1)
             rho0.assign(rho1)
@@ -691,6 +637,8 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             ee1 = ee2 = ee3 = ee4 = ee5 = list()
         else:
             # PLOTS
+            # Save array data to file
+            save_energy_arrays(t_array, ek_array, ee_array, j, "mesh")
             # Minimum of stream function (Eye of Rotation)
             u1 = project(u1, V)
 
@@ -712,14 +660,6 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             # Data on Kinetic/Elastic Energies
             with open("results/Compressible-ConformEnergy.txt", "a") as text_file:
                 text_file.write("Ra="+str(Re)+", We="+str(We)+", Ma="+str(Ma)+", t="+str(t)+", E_k="+str(E_k)+", E_e="+str(E_e)+'\n')
-
-
-            if j==3:
-                peakEk1 = max(ek1)
-                peakEk2 = max(ek2)
-                peakEk3 = max(ek3)
-                with open("Energy.txt", "a") as text_file:
-                    text_file.write("Re="+str(Re*conv)+", We="+str(We)+", Ma="+str(Ma)+"Peak Kinetic Energy"+str(peakEk3)+"Incomp Kinetic En"+str(peakEk1)+'\n')
 
             # Plot Cross Section Flow Values 
             u_x = project(u1[0],Q)      # Project U_x onto scalar function space
@@ -789,6 +729,10 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.close()"""
             if j==loopend:
                 # First Normal Stress
+                x1, ek1, ee1 = load_energy_arrays(1, "mesh")
+                x2, ek2, ee2 = load_energy_arrays(2, "mesh")
+                x3, ek3, ee3 = load_energy_arrays(3, "mesh")
+                x4, ek4, ee4 = load_energy_arrays(4, "mesh")
                 x_axis1 = list(chunks(x_axis, mm))
                 y_axis1 = list(chunks(y_axis, mm))
                 u_x1 = list(chunks(u_xg, mm))
@@ -797,9 +741,9 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 tau_yy1 = list(chunks(tau_yyg, mm))
                 plt.figure(0)
                 plt.plot(x_axis1[0], u_y1[0], 'r-', label=r'$We=0$, $Re=10$')
-                plt.plot(x_axis1[1], u_y1[1], 'b-', label=r'$We=0.1$, $Re=10')
+                plt.plot(x_axis1[1], u_y1[1], 'b--', label=r'$We=0.1$, $Re=10')
                 plt.plot(x_axis1[2], u_y1[2], 'c-', label=r'$We=0.25$, $Re=10$')
-                plt.plot(x_axis1[3], u_y1[3], 'g-', label=r'$We=0.5$, $Re=10$')
+                plt.plot(x_axis1[3], u_y1[3], 'g--', label=r'$We=0.5$, $Re=10$')
                 plt.legend(loc='best')
                 plt.xlabel('x')
                 plt.ylabel('$u_y(x,0.75)$')
@@ -807,9 +751,9 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.clf()
                 plt.figure(1)
                 plt.plot(u_x1[0], y_axis1[0], 'r-', label=r'$We=0$, $Re=10$')
-                plt.plot(u_x1[1], y_axis1[1], 'b-', label=r'$We=0.1$, $Re=10')
+                plt.plot(u_x1[1], y_axis1[1], 'b--', label=r'$We=0.1$, $Re=10')
                 plt.plot(u_x1[2], y_axis1[2], 'c-', label=r'$We=0.25$, $Re=10$')
-                plt.plot(u_x1[3], y_axis1[3], 'g-', label=r'$We=0.5$, $Re=10$')
+                plt.plot(u_x1[3], y_axis1[3], 'g--', label=r'$We=0.5$, $Re=10$')
                 plt.legend(loc='best')
                 plt.xlabel('$u_x(0.5,y)$')
                 plt.ylabel('y')
@@ -817,9 +761,9 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.clf()
                 plt.figure(2)
                 plt.plot(x_axis1[0], tau_xx1[0], 'r-', label=r'$We=0$, $Re=10$')
-                plt.plot(x_axis1[1], tau_xx1[1], 'b-', label=r'$We=0.1$, $Re=10')
+                plt.plot(x_axis1[1], tau_xx1[1], 'b--', label=r'$We=0.1$, $Re=10')
                 plt.plot(x_axis1[2], tau_xx1[2], 'c-', label=r'$We=0.25$, $Re=10$')
-                plt.plot(x_axis1[3], tau_xx1[3], 'g-', label=r'$We=0.5$, $Re=10$')
+                plt.plot(x_axis1[3], tau_xx1[3], 'g--', label=r'$We=0.5$, $Re=10$')
                 plt.legend(loc='best')
                 plt.xlabel('x')
                 plt.ylabel('$\tau_{xx}(x,1.0)$')
@@ -827,9 +771,9 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.clf()
                 plt.figure(3)
                 plt.plot(x_axis1[0], tau_yy1[0], 'r-', label=r'$We=0$, $Re=10$')
-                plt.plot(x_axis1[1], tau_yy1[1], 'b-', label=r'$We=0.1$, $Re=10')
+                plt.plot(x_axis1[1], tau_yy1[1], 'b--', label=r'$We=0.1$, $Re=10')
                 plt.plot(x_axis1[2], tau_yy1[2], 'c-', label=r'$We=0.25$, $Re=10$')
-                plt.plot(x_axis1[3], tau_yy1[3], 'g-', label=r'$We=0.5$, $Re=10$')
+                plt.plot(x_axis1[3], tau_yy1[3], 'g--', label=r'$We=0.5$, $Re=10$')
                 plt.legend(loc='best')
                 plt.xlabel('x')
                 plt.ylabel('$\tau_{yy}(x,1.0)$')
@@ -1113,4 +1057,4 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("flow-parameters.csv", mesh_resolution=40, simulation_time=20.0, mesh_refinement=False)
+    main("flow-parameters.csv", mesh_resolution=30, simulation_time=20.0, mesh_refinement=False)

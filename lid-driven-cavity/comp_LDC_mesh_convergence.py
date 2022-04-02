@@ -75,26 +75,6 @@ def main(input_csv,simulation_time, mesh_refinement):
 
 
     # FEM Solution Convergence/Energy Plot
-    x1=list()
-    x2=list()
-    x3=list()
-    x4=list()
-    x5=list()
-    y=list()
-    z=list()
-    zz=list()
-    zzz=list()
-    zl=list()
-    ek1=list()
-    ek2=list()
-    ek3=list()
-    ek4=list()
-    ee1=list()
-    ee2=list()
-    ee3=list()
-    ee4=list()
-    ek5=list()
-    ee5=list()
     x_axis=list()
     y_axis=list()
     u_xg = list()
@@ -110,13 +90,14 @@ def main(input_csv,simulation_time, mesh_refinement):
         """ mesh refinemment prescribed in code"""
         # Mesh Refinement 
         if j==1:
-            mm=30
+            mm=20
         elif j==2:
-            mm=40
+            mm=30
         elif j==3:
-            mm=60
+            mm=40
         elif j==4:
-            mm=80
+            mm=45
+            dt=0.0005
 
 
         # Define Geometry
@@ -126,9 +107,11 @@ def main(input_csv,simulation_time, mesh_refinement):
         # DEFINE THE COMPUTATION GRID
         # Choose Mesh to Use
 
-        mesh = LDC_Regular_Mesh(mm, B, L)
-        #mesh = refine_top(0, 0, B, L, mesh, 1)
+        #mesh = LDC_Regular_Mesh(mm, B, L)
+        #mesh = refine_boundary(0, 0, B, L, mesh, 1)
 
+        mesh = Skew_Mesh(mm, B, L)
+        mesh = refine_top(0, 0, B, L, mesh, 1, 0.025)
         mplot(mesh)
         plt.savefig("fine_skewed_grid-"+str(mm)+".png")
         plt.clf()
@@ -257,9 +240,7 @@ def main(input_csv,simulation_time, mesh_refinement):
         betav = 0.5
         Ma = float(ma_row[1])
         Re = float(re_row[2])
-        We = float(we_row[4])
-
-
+        We = float(we_row[3])
 
 
         # Continuation in Reynolds/Weissenberg Number Number (Re-->10Re)
@@ -377,11 +358,10 @@ def main(input_csv,simulation_time, mesh_refinement):
         # Use nonzero guesses - essential for CG with non-symmetric BC
         parameters['krylov_solver']['nonzero_initial_guess'] = True
 
-        #Lists for Energy Values
-        x=list()
-        ee=list()
-        ek=list()
-        z=list()
+        # Array for storing for energy data
+        t_array=list()
+        ek_array=list()
+        ee_array=list()
 
         conerr=list()
         deferr=list()
@@ -568,31 +548,9 @@ def main(input_csv,simulation_time, mesh_refinement):
             E_e=assemble((tau1_vec[0]+tau1_vec[2])*dx)
 
 
-            # Record Elastic & Kinetic Energy Values (Method 1)
-            if j==1:
-                x1.append(t)
-                ek1.append(E_k)
-                ee1.append(E_e)
-            if j==2:
-                x2.append(t)
-                ek2.append(E_k)
-                ee2.append(E_e)
-            if j==3:
-                x3.append(t)
-                ek3.append(E_k)
-                ee3.append(E_e)
-            if j==4:
-                x4.append(t)
-                ek4.append(E_k)
-                ee4.append(E_e)
-            if j==5:
-                x5.append(t)
-                ek5.append(E_k)
-                ee5.append(E_e)
-
-
-            x.append(t)
-            ek.append(norm(tau1_vec.vector(),'linf'))
+            t_array.append(t)
+            ek_array.append(E_k)
+            ee_array.append(E_e)
 
             
              # Update Solutions
@@ -636,6 +594,8 @@ def main(input_csv,simulation_time, mesh_refinement):
             ek1 = ek2 = ek3 = ek4 = ek5 = list()
             ee1 = ee2 = ee3 = ee4 = ee5 = list()
         else:
+            # Save array data to file
+            save_energy_arrays(t_array, ek_array, ee_array, j, "mesh")
             # PLOTS
             # Minimum of stream function (Eye of Rotation)
             u1 = project(u1, V)
@@ -658,14 +618,6 @@ def main(input_csv,simulation_time, mesh_refinement):
             # Data on Kinetic/Elastic Energies
             with open("results/Compressible-ConformEnergy.txt", "a") as text_file:
                 text_file.write("res="+str(mm)+"Re="+str(Re)+", We="+str(We)+", Ma="+str(Ma)+", t="+str(t)+", E_k="+str(E_k)+", E_e="+str(E_e)+'\n')
-
-
-            if j==3:
-                peakEk1 = max(ek1)
-                peakEk2 = max(ek2)
-                peakEk3 = max(ek3)
-                with open("Energy.txt", "a") as text_file:
-                    text_file.write("res="+str(mm)+"Re="+str(Re*conv)+", We="+str(We)+", Ma="+str(Ma)+"Peak Kinetic Energy"+str(peakEk3)+"Incomp Kinetic En"+str(peakEk1)+'\n')
 
             # Plot DEVSS Data
             D_proj_cont_xx = project(Dcomp(u1)[0,0], Q)
@@ -692,6 +644,10 @@ def main(input_csv,simulation_time, mesh_refinement):
 
             if j==loopend:
                 # Kinetic Energy
+                x1, ek1, ee1 = load_energy_arrays(1, "mesh")
+                x2, ek2, ee2 = load_energy_arrays(2, "mesh")
+                x3, ek3, ee3 = load_energy_arrays(3, "mesh")
+                x4, ek4, ee4 = load_energy_arrays(4, "mesh")
                 plt.figure(0)
                 plt.plot(x1, ek1, 'r-', label=r'M1')
                 plt.plot(x2, ek2, 'b--', label=r'M2')

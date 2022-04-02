@@ -3,6 +3,7 @@
 
 
 from decimal import *
+from re import X
 from dolfin import *
 from mshr import *
 from math import pi, sin, cos, sqrt, fabs, tanh
@@ -57,13 +58,18 @@ def expskewcavity(x,y,N):
 
 # Skew Mapping
 def skewcavity(x,y):
-    xi = 0.5*(1-np.cos(x*pi))**1
-    ups =0.5*(1-np.cos(y*pi))**1
+    xi = 0.5*(1-np.cos(x*pi))
+    ups =0.5*(1-np.cos(y*pi))
     return(xi,ups)
 
 def xskewcavity(x,y):
-    xi = 0.5*(1-np.cos(x*pi))**1
+    xi = 0.5*(1-np.cos(x*pi))
     ups = y
+    return(xi,ups)
+
+def yskewcavity(x,y):
+    xi = x
+    ups = (np.cos(0.5*y*pi))
     return(xi,ups)
 
 def LDC_Regular_Mesh(mm, B, L):
@@ -83,7 +89,7 @@ def LDC_Regular_Mesh(mm, B, L):
     return base_mesh
 
 
-def DGP_Mesh(mm, B, L):
+def Skew_Mesh(mm, B, L):
     # Define Geometry
     x0 = 0
     y0 = 0
@@ -97,11 +103,6 @@ def DGP_Mesh(mm, B, L):
     #c = min(x1-x0,y1-y0)
     base_mesh= RectangleMesh(Point(x0,y0), Point(x1, y1), nx, ny) # Rectangular Mesh
 
-
-    # Create Unstructured mesh
-    #u_rec=Rectangle(Point(0.0,0.0),Point(1.0,1.0))
-    #mesh0=generate_mesh(u_rec, mm)
-
     mesh1 = base_mesh
 
 
@@ -114,15 +115,13 @@ def DGP_Mesh(mm, B, L):
     cells1 = base_mesh.cells()[:,1]
     cells2 = base_mesh.cells()[:,2]
 
-
-
     # OLD MESH COORDINATES -> NEW MESH COORDINATES
     r=list()
     l=list()
     x = list()
     for i in range(nv):
-        r.append(xskewcavity(coorX[i], coorY[i])[0])
-        l.append(xskewcavity(coorX[i], coorY[i])[1])
+        r.append(yskewcavity(coorX[i], coorY[i])[0])
+        l.append(yskewcavity(coorX[i], coorY[i])[1])
 
     r=np.asarray(r)
     l=np.asarray(l)
@@ -137,7 +136,6 @@ def DGP_Mesh(mm, B, L):
         editor.add_vertex(i, np.array([r[i], l[i]]))
     for i in range(nc):
         editor.add_cell(i, np.array([cells0[i], cells1[i], cells2[i]], dtype=np.uintp))
-
 
     editor.close()
     return mesh1
@@ -180,22 +178,21 @@ def DGP_structured_mesh(mm, x_0, y_0, x_1, y_1, B, L):
     
     return mesh1
 
-def refine_boundary(x_0, y_0, x_1, y_1, mesh, times):
-    for i in range(times-1):
-          g = (max(x_1,y_1)-max(x_0,y_0))*0.025/(i+1)
+def refine_boundary(x_0, y_0, x_1, y_1, mesh, times, ratio):
+    for i in range(times):
+          g = (max(x_1,y_1)-max(x_0,y_0))*ratio/(i+1)
           cell_domains = MeshFunction('bool', mesh, 2) 
           cell_domains.set_all(False)
           for cell in cells(mesh):
               x = cell.midpoint()
               if  (x[0] < x_0+g or x[1] < y_0+g) or (x[0] > x_1-g or x[1] > y_1-g): 
                   cell_domains[cell]=True
-
           mesh = refine(mesh, cell_domains, redistribute=True)
     return mesh
 
-def refine_top(x_0, y_0, x_1, y_1, mesh, times):
+def refine_top(x_0, y_0, x_1, y_1, mesh, times, ratio):
     for i in range(times):
-          g = (max(x_1,y_1)-max(x_0,y_0))*0.025/(i+1)
+          g = (max(x_1,y_1)-max(x_0,y_0))*ratio/(i+1)
           cell_domains = MeshFunction('bool', mesh, 2) 
           cell_domains.set_all(False)
           for cell in cells(mesh):
@@ -455,3 +452,15 @@ def absolute(u):
     u_array = np.absolute(u.vector().get_local())
     u.vector()[:] = u_array
     return u
+
+
+def save_energy_arrays(t, ek, ee, j, tag):
+    np.save('data/time-data-'+str(j)+'-'+str(tag)+'.npy', t)
+    np.save('data/ek-data-'+str(j)+'-'+str(tag)+'.npy', ek)
+    np.save('data/ee-data-'+str(j)+'-'+str(tag)+'.npy', ee)
+
+def load_energy_arrays(j, tag):
+    t = np.load('data/time-data-'+str(j)+'-'+str(tag)+'.npy')
+    ek = np.load('data/ek-data-'+str(j)+'-'+str(tag)+'.npy')
+    ee = np.load('data/ee-data-'+str(j)+'-'+str(tag)+'.npy')
+    return t, ek, ee

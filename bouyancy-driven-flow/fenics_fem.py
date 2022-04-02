@@ -263,11 +263,6 @@ def DGP_Mesh(mm, B, L):
     #c = min(x1-x0,y1-y0)
     base_mesh= RectangleMesh(Point(x0,y0), Point(x1, y1), nx, ny) # Rectangular Mesh
 
-
-    # Create Unstructured mesh
-    #u_rec=Rectangle(Point(0.0,0.0),Point(1.0,1.0))
-    #mesh0=generate_mesh(u_rec, mm)
-
     mesh1 = base_mesh
 
 
@@ -279,8 +274,6 @@ def DGP_Mesh(mm, B, L):
     cells0 = base_mesh.cells()[:,0]
     cells1 = base_mesh.cells()[:,1]
     cells2 = base_mesh.cells()[:,2]
-
-
 
     # OLD MESH COORDINATES -> NEW MESH COORDINATES
     r=list()
@@ -303,7 +296,6 @@ def DGP_Mesh(mm, B, L):
         editor.add_vertex(i, np.array([r[i], l[i]]))
     for i in range(nc):
         editor.add_cell(i, np.array([cells0[i], cells1[i], cells2[i]], dtype=np.uintp))
-
 
     editor.close()
     return mesh1
@@ -348,30 +340,29 @@ def DGP_structured_mesh(mm, x_0, y_0, x_1, y_1, B, L):
 
 # Mesh Refine Code (UNSTRUCTURED MESH)
 
-def refine_boundary(mesh, times):
+def refine_boundary(x_0, y_0, x_1, y_1, mesh, times, ratio):
     for i in range(times):
-          g = (max(x_1,y_1)-max(x_0,y_0))*0.025/(i+1)
-          cell_domains = CellFunction("bool", mesh)
+          g = (max(x_1,y_1)-max(x_0,y_0))*ratio/(i+1)
+          cell_domains = MeshFunction('bool', mesh, 2) 
           cell_domains.set_all(False)
           for cell in cells(mesh):
               x = cell.midpoint()
               if  (x[0] < x_0+g or x[1] < y_0+g) or (x[0] > x_1-g or x[1] > y_1-g): 
                   cell_domains[cell]=True
-
           mesh = refine(mesh, cell_domains, redistribute=True)
     return mesh
 
-def refine_top(mesh, times):
+def refine_top(x_0, y_0, x_1, y_1, mesh, times, ratio):
     for i in range(times):
-          g = (max(x_1,y_1)-max(x_0,y_0))*0.025/(i+1)
-          cell_domains = CellFunction("bool", mesh)
+          g = (max(x_1,y_1)-max(x_0,y_0))*ratio/(i+1)
+          cell_domains = MeshFunction('bool', mesh, 2) 
           cell_domains.set_all(False)
           for cell in cells(mesh):
               x = cell.midpoint()
               if  x[1] > y_1-g:
                   cell_domains[cell]=True
-          mesh_refine = refine(mesh, cell_domains, redistribute=True)
-    return mesh_refine
+          mesh = refine(mesh, cell_domains, redistribute=True)
+    return mesh
 
 def refine_walls(mesh, times):
     for i in range(times):
