@@ -465,8 +465,8 @@ def load_energy_arrays(j, tag):
     ee = np.load('data/ee-data-'+str(j)+'-'+str(tag)+'.npy')
     return t, ek, ee
 
-def load_energy_arrays_archive(j, tag):
-    t = np.load('data/time-data-'+str(j)+'.npy')
-    ek = np.load('data/ek-data-'+str(j)+'.npy')
-    ee = np.load('data/ee-data-'+str(j)+'.npy')
-    return t, ek, ee
+#def load_energy_arrays_archive(j):
+#    t = np.load('data/time-data-'+str(j)+'.npy')
+#    ek = np.load('data/ek-data-'+str(j)+'.npy')
+#    ee = np.load('data/ee-data-'+str(j)+'.npy')
+#    return t, ek, ee
