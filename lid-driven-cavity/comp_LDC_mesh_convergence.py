@@ -362,6 +362,7 @@ def main(input_csv,simulation_time, mesh_refinement):
         t_array=list()
         ek_array=list()
         ee_array=list()
+        data_tag = "mesh"
 
         conerr=list()
         deferr=list()
@@ -595,7 +596,7 @@ def main(input_csv,simulation_time, mesh_refinement):
             ee1 = ee2 = ee3 = ee4 = ee5 = list()
         else:
             # Save array data to file
-            save_energy_arrays(t_array, ek_array, ee_array, j, "mesh")
+            save_energy_arrays(t_array, ek_array, ee_array, j, data_tag)
             # PLOTS
             # Minimum of stream function (Eye of Rotation)
             u1 = project(u1, V)
@@ -644,17 +645,17 @@ def main(input_csv,simulation_time, mesh_refinement):
 
             if j==loopend:
                 # Kinetic Energy
-                x1, ek1, ee1 = load_energy_arrays(1, "mesh")
-                x2, ek2, ee2 = load_energy_arrays(2, "mesh")
-                x3, ek3, ee3 = load_energy_arrays(3, "mesh")
-                x4, ek4, ee4 = load_energy_arrays(4, "mesh")
+                x1, ek1, ee1 = load_energy_arrays(1, data_tag)
+                x2, ek2, ee2 = load_energy_arrays(2, data_tag)
+                x3, ek3, ee3 = load_energy_arrays(3, data_tag)
+                x4, ek4, ee4 = load_energy_arrays(4, data_tag)
                 plt.figure(0)
                 plt.plot(x1, ek1, 'r-', label=r'M1')
                 plt.plot(x2, ek2, 'b--', label=r'M2')
                 plt.plot(x3, ek3, 'c-', label=r'M3')
                 plt.plot(x4, ek4, 'm--', label=r'M4')
                 plt.legend(loc='best')
-                plt.xlabel('time(s)')
+                plt.xlabel('$t$')
                 plt.ylabel('$E_k$')
                 plt.savefig("plots/energy/MeshKineticEnergyRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+"t="+str(t)+".png")
                 plt.clf()
@@ -665,7 +666,7 @@ def main(input_csv,simulation_time, mesh_refinement):
                 plt.plot(x3, ee3, 'c-', label=r'M3')
                 plt.plot(x4, ee4, 'm--', label=r'M4')
                 plt.legend(loc='best')
-                plt.xlabel('time(s)')
+                plt.xlabel('$t$')
                 plt.ylabel('$E_e$')
                 plt.savefig("plots/energy/MeshElasticEnergyRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+"t="+str(t)+".png")
                 plt.clf()
@@ -829,4 +830,4 @@ def main(input_csv,simulation_time, mesh_refinement):
 
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("flow-parameters.csv", simulation_time=15.0, mesh_refinement=False)
+    main("flow-parameters.csv", simulation_time=0.05, mesh_refinement=False)

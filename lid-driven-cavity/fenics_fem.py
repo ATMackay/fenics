@@ -21,7 +21,7 @@ pi=3.14159265359
 
 # Progress Bar
 def update_progress(job_title, progress):
-    length = 50 # modify this to change the length
+    length = 25 # modify this to change the length
     block = int(round(length*progress))
     msg = "\r{0}: [{1}] {2}%".format(job_title, "#"*block + "-"*(length-block), round(progress*100, 4))
     if progress >= 1: msg += " DONE\r\n"
@@ -463,4 +463,10 @@ def load_energy_arrays(j, tag):
     t = np.load('data/time-data-'+str(j)+'-'+str(tag)+'.npy')
     ek = np.load('data/ek-data-'+str(j)+'-'+str(tag)+'.npy')
     ee = np.load('data/ee-data-'+str(j)+'-'+str(tag)+'.npy')
+    return t, ek, ee
+
+def load_energy_arrays_archive(j, tag):
+    t = np.load('data/time-data-'+str(j)+'.npy')
+    ek = np.load('data/ek-data-'+str(j)+'.npy')
+    ee = np.load('data/ee-data-'+str(j)+'.npy')
     return t, ek, ee
