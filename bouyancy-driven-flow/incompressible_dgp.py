@@ -122,16 +122,22 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             def inside(self, x, on_boundary):
                 return True if x[1] > top_bound - DOLFIN_EPS and on_boundary  else False 
 
+        class Bottom(SubDomain):
+            def inside(self, x, on_boundary):
+                return True if x[1] < bottom_bound - DOLFIN_EPS and on_boundary  else False 
+
         no_slip = No_slip()
         left = Left()
         right = Right()
         top = Top()
+        bottom = Bottom()
 
 
         # MARK SUBDOMAINS (Create mesh functions over the cell facets)
         sub_domains = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
         sub_domains.set_all(5)
         no_slip.mark(sub_domains, 0)
+        bottom.mark(sub_domains, 1)
         left.mark(sub_domains, 2)
         right.mark(sub_domains, 3)
         top.mark(sub_domains, 4)
@@ -152,7 +158,8 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
         # Define boundary/stabilisation FUNCTIONS
         # ramped thermal boundary condition
-        ramp_function = Expression('0.5*(1+tanh(8*(t-0.5)))*(T_h-T_0)+T_0', degree=2, t=0.0, T_0=T_0, T_h=T_h)
+        #ramp_function = Expression('0.5*(1+tanh(8*(t-0.5)))*(T_h-T_0)+T_0', degree=2, t=0.0, T_0=T_0, T_h=T_h)
+        ramp_function = Expression('0.5*(1+tanh(4*(t-0.5)))*(T_h-T_0)+T_0', degree=2, t=0.0, T_0=T_0, T_h=T_h)
         # direction of gravitational force (0,-1)
         f = Expression(('0','-1'), degree=2)
 
@@ -174,7 +181,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         noslip1 = DirichletBC(W.sub(0), Constant((0.0, 0.0)), left)  # No Slip boundary conditions on the left wall
         noslip2 = DirichletBC(W.sub(0), Constant((0.0, 0.0)), right)  # No Slip boundary conditions on the left wall
         noslip3 = DirichletBC(W.sub(0), Constant((0.0, 0.0)), top)  # No Slip boundary conditions on the left wall
-        temp_left =  DirichletBC(Q, T_h, left)    #Temperature on Omega0 
+        temp_left =  DirichletBC(Q, ramp_function, left)    #Temperature on Omega0 
         temp_right =  DirichletBC(Q, T_0, right)    #Temperature on Omega2 
 
         #Collect Boundary Conditions
@@ -196,19 +203,19 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
         # Set parameters for primary loop ------------------------------------------------        
         if j==1:
-            Ra = float(ra_row[1])
+            Ra = float(ra_row[2])
             We = float(we_row[1])
         elif j==2:
-            Ra = float(ra_row[1])
+            Ra = float(ra_row[2])
             We = float(we_row[2])
         elif j==3:
-            Ra = float(ra_row[1])
+            Ra = float(ra_row[2])
             We = float(we_row[3])
         elif j==4:
-            Ra = float(ra_row[1])
+            Ra = float(ra_row[2])
             We = float(we_row[4])
         elif j==5:
-            Ra = float(ra_row[2])
+            Ra = float(ra_row[3])
             We = float(we_row[4])
 
         print('############# TIME SCALE ############')
@@ -327,7 +334,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         t = 0.0
         iter = 0            # iteration counter
         while t < Tf + DOLFIN_EPS:
-            flow_description = "compressible bouyancy-driven flow: loop: " +str(jjj) + ", Ra: "+str(Ra)+", We: "+str(We)+", Pr: "+str(Pr)+", al: "+str(al)+", betav: "+str(betav)
+            flow_description = "incompressible bouyancy-driven flow: loop: " +str(jjj) + ", Ra: "+str(Ra)+", We: "+str(We)+", Pr: "+str(Pr)+", al: "+str(al)+", betav: "+str(betav)
             update_progress(flow_description, t/Tf) # Update progress bar
             iter += 1
             # Set Function timestep
@@ -472,7 +479,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             lhs_theta1 = (1.0/dt)*thetal + dot(u1,grad(thetal))
             rhs_theta1 = (1.0/dt)*thetar + dot(u1,grad(thetar)) + (1.0/dt)*theta0 + Vh*gamdot
             a8 = inner(lhs_theta1,r)*dx + inner(grad(thetal),grad(r))*dx + inner(We*tau1*grad(thetal),grad(r))*dx
-            L8 = inner(rhs_theta1,r)*dx + inner(grad(thetar),grad(r))*dx + Bi*inner(grad(theta0),n*r)*ds(3) + inner(We*tau1*grad(thetar),grad(r))*dx
+            L8 = inner(rhs_theta1,r)*dx + inner(grad(thetar),grad(r))*dx + Bi*inner(grad(theta0),n*r)*ds(3)  + Bi*inner(grad(theta0),n*r)*ds(1) + inner(We*tau1*grad(thetar),grad(r))*dx
 
             A8=assemble(a8)                                     # Assemble System
             b8=assemble(L8)
@@ -668,7 +675,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.savefig("plots/incompressible-flow/ElasticEnergyTf="+str(Tf)+"Ra="+str(Ra)+"b="+str(betav)+"mesh="+str(mm)+"dt="+str(dt)+".png")
                 plt.clf()
                 # Nusslet Number
-                plt.figure(1)
+                plt.figure(2)
                 plt.plot(x1, nus1, 'r-', label=r'$We=0$ (Newtonian), $Ra=1000')
                 plt.plot(x2, nus2, 'b-', label=r'$We=0.1$, $Ra=1000')
                 plt.plot(x3, nus3, 'c-', label=r'$We=0.5$, $Ra=1000')

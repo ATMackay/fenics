@@ -236,8 +236,8 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             Ma = float(ma_row[3])
             label_3 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
         elif j==4:
-            Re = float(re_row[4])
-            Ma = float(ma_row[3])
+            Re = float(re_row[3])
+            Ma = float(ma_row[4])
             label_4 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
 
         # Continuation in Reynolds/Weissenberg Number Number (Re-->10Re)

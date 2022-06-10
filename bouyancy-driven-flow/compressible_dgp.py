@@ -55,7 +55,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     Vh = 0.005
     T_0 = 300
     T_h = 350
-    Bi = 0.2
+    Bi = 0.0
     Di = 0.005             #Diffusion Number
     Ma = 0.01
     al = 2.0
@@ -159,17 +159,22 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             def inside(self, x, on_boundary):
                 return True if x[1] > top_bound - DOLFIN_EPS and on_boundary  else False  
 
+        class Bottom(SubDomain):
+            def inside(self, x, on_boundary):
+                return True if x[1] < bottom_bound - DOLFIN_EPS and on_boundary  else False 
 
         no_slip = No_slip()
         left = Left()
         right = Right()
         top = Top()
+        bottom = Bottom()
 
 
         # MARK SUBDOMAINS (Create mesh functions over the cell facets)
         sub_domains = MeshFunction("size_t", mesh, mesh.topology().dim() - 1)
         sub_domains.set_all(5)
         no_slip.mark(sub_domains, 0)
+        bottom.mark(sub_domains, 1)
         left.mark(sub_domains, 2)
         right.mark(sub_domains, 3)
         top.mark(sub_domains, 4)
@@ -188,7 +193,8 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
         # Define boundary/stabilisation FUNCTIONS
         # ramped thermal boundary condition
-        ramp_function = Expression('0.5*(1+tanh(8*(t-0.5)))*(T_h-T_0)+T_0', degree=2, t=0.0, T_0=T_0, T_h=T_h)
+        #ramp_function = Expression('0.5*(1+tanh(8*(t-0.5)))*(T_h-T_0)+T_0', degree=2, t=0.0, T_0=T_0, T_h=T_h)
+        ramp_function = Expression('0.5*(1+tanh(4*(t-0.5)))*(T_h-T_0)+T_0', degree=2, t=0.0, T_0=T_0, T_h=T_h)
         # direction of gravitational force (0,-1)
         f = Expression(('0','-1'), degree=2)
         k = Expression(('0','1'), degree=2)
@@ -212,7 +218,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         noslip1 = DirichletBC(W.sub(0), Constant((0.0, 0.0)), left)  # No Slip boundary conditions on the left wall
         noslip2 = DirichletBC(W.sub(0), Constant((0.0, 0.0)), right)  # No Slip boundary conditions on the left wall
         noslip3 = DirichletBC(W.sub(0), Constant((0.0, 0.0)), top)  # No Slip boundary conditions on the left wall
-        temp_left =  DirichletBC(Q, T_h, left)    #Temperature on Omega0 
+        temp_left =  DirichletBC(Q, ramp_function, left)    #Temperature on Omega0 
         temp_right =  DirichletBC(Q, T_0, right)    #Temperature on Omega2 
 
         #Collect Boundary Conditions
@@ -575,7 +581,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             lhs_theta1 = (1.0/dt)*rho1*thetal + rho1*dot(u1,grad(thetal))
             rhs_theta1 = (1.0/dt)*rho0*thetar + rho1*dot(u1,grad(thetar)) + (1.0/dt)*rho0*theta0 + Vh*gamdot
             a8 = inner(lhs_theta1,r)*dx + inner(grad(thetal),grad(r))*dx 
-            L8 = inner(rhs_theta1,r)*dx + inner(grad(thetar),grad(r))*dx + Bi*inner(grad(theta0),n*r)*ds(3) + inner(We*tau1*grad(thetar),grad(r))*dx
+            L8 = inner(rhs_theta1,r)*dx + inner(grad(thetar),grad(r))*dx + Bi*inner(grad(theta0),n*r)*ds(3) + Bi*inner(grad(theta0),n*r)*ds(1) + inner(We*tau1*grad(thetar),grad(r))*dx
 
             A8=assemble(a8)                                     # Assemble System
             b8=assemble(L8)
@@ -726,8 +732,8 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             plt.figure(0)
             plt.plot(x1, ek1, 'r-', label=r'$Ra=500$,$We=0.25$')
             plt.plot(x2, ek2, 'b-', label=r'$Ra=1000$,$We=0.25$')
-            plt.plot(x3, ek3, 'c-', label=r'$Ra=2000$,$We=0.25$')
-            plt.plot(x4, ek4, 'm-', label=r'$Ra=2000$,$We=0.1$')
+            plt.plot(x3, ek3, 'c-', label=r'$Ra=5000$,$We=0.25$')
+            plt.plot(x4, ek4, 'm-', label=r'$Ra=5000$,$We=0.1$')
             #plt.plot(x5, ek5, 'g-', label=r'$Ra=50$')
             plt.legend(loc='best')
             plt.xlabel('$t$')
@@ -739,8 +745,8 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             plt.figure(1)
             plt.plot(x1, ee1, 'r-', label=r'$Ra=500$,$We=0.25$')
             plt.plot(x2, ee2, 'b-', label=r'$Ra=1000$,$We=0.25$')
-            plt.plot(x3, ee3, 'c-', label=r'$Ra=2000$,$We=0.25$')
-            plt.plot(x4, ee4, 'm-', label=r'$Ra=2000$,$We=0.1$')
+            plt.plot(x3, ee3, 'c-', label=r'$Ra=5000$,$We=0.25$')
+            plt.plot(x4, ee4, 'm-', label=r'$Ra=5000$,$We=0.1$')
             #plt.plot(x5, ee5, 'g-', label=r'$Ra=50$')
             plt.legend(loc='best')
             plt.xlabel('$t$')
@@ -753,8 +759,8 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             plt.figure(2)
             plt.plot(x1, nus1, 'r-', label=r'$Ra=500$,$We=0.25$')
             plt.plot(x2, nus2, 'b-', label=r'$Ra=1000$,$We=0.25$')
-            plt.plot(x3, nus3, 'c-', label=r'$Ra=2000$,$We=0.25$')
-            plt.plot(x4, nus4, 'm-', label=r'$Ra=2000$,$We=0.1$')
+            plt.plot(x3, nus3, 'c-', label=r'$Ra=5000$,$We=0.25$')
+            plt.plot(x4, nus4, 'm-', label=r'$Ra=5000$,$We=0.1$')
             #plt.plot(x5, ee5, 'g-', label=r'$We=2.0$')
             plt.legend(loc='best')
             plt.xlabel('time(s)')
