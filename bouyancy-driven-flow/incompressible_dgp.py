@@ -12,25 +12,25 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     Tf = T_f
 
     # Experiment Run Time
-    dt = 0.001  #Timestep
+    dt = 0.00001  #Timestep
 
     # Nondimensional flow parameters
     B, L = 1, 1 # Length
     U = 1
-    betav = 0.5    
+    betav = 0.9  
     Ra = 10000                           #Rayleigh Number
-    Pr = 1.0
+    Pr = 2.0
     We = 0.01                          #Weisenberg NUmber
     Vh = 0.005
     T_0 = 300
     T_h = 350
-    Bi = 0.2
+    Bi = 0.0+DOLFIN_EPS
     Di = 0.005                         #Diffusion Number
     al = 2.0
 
     c1 = 0.05
     c2 = 0.001
-    th = 0.5              # DEVSS
+    th = 0.5             # DEVSS
     C = 200.
 
 
@@ -124,7 +124,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
         class Bottom(SubDomain):
             def inside(self, x, on_boundary):
-                return True if x[1] < bottom_bound - DOLFIN_EPS and on_boundary  else False 
+                return True if x[1] < bottom_bound + DOLFIN_EPS and on_boundary  else False 
 
         no_slip = No_slip()
         left = Left()
@@ -150,9 +150,10 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
         boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1) #FacetFunction("size_t", mesh)
         no_slip.mark(boundary_parts,0)
-        left.mark(boundary_parts,1)
-        right.mark(boundary_parts,2)
-        top.mark(boundary_parts,3)
+        bottom.mark(boundary_parts, 1)
+        left.mark(boundary_parts, 2)
+        right.mark(boundary_parts, 3)
+        top.mark(boundary_parts, 4)
         ds = Measure("ds")[boundary_parts]
 
 
@@ -203,20 +204,20 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
         # Set parameters for primary loop ------------------------------------------------        
         if j==1:
-            Ra = float(ra_row[2])
+            Ra = float(ra_row[1])
             We = float(we_row[1])
         elif j==2:
             Ra = float(ra_row[2])
-            We = float(we_row[2])
+            We = float(we_row[1])
         elif j==3:
-            Ra = float(ra_row[2])
-            We = float(we_row[3])
-        elif j==4:
-            Ra = float(ra_row[2])
-            We = float(we_row[4])
-        elif j==5:
             Ra = float(ra_row[3])
-            We = float(we_row[4])
+            We = float(we_row[1])
+        elif j==4:
+            Ra = float(ra_row[4])
+            We = float(we_row[1])
+        elif j==5:
+            Ra = float(ra_row[5])
+            We = float(we_row[1])
 
         print('############# TIME SCALE ############')
         print('Timestep size (s):', dt)
@@ -306,9 +307,9 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
         # DEVSS Stabilisation
         
-        DEVSSl_u12 = 2*(1-betav)*inner(Dincomp(u),Dincomp(v))*dx    
+        DEVSSl_u12 = 2*(1-betav+DOLFIN_EPS)*inner(Dincomp(u),Dincomp(v))*dx    
         DEVSSr_u12 = 2*inner(D0,Dincomp(v))*dx   
-        DEVSSl_u1 = 2*(1-betav)*inner(Dincomp(u),Dincomp(v))*dx    
+        DEVSSl_u1 = 2*(1-betav+DOLFIN_EPS)*inner(Dincomp(u),Dincomp(v))*dx    
         DEVSSr_u1 = 2*inner(D12,Dincomp(v))*dx 
 
 
@@ -371,9 +372,9 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             Du12Dt = (2.0*(u - u0) / dt + dot(u0, nabla_grad(u0)))
             Fu12 = dot(Du12Dt, v)*dx + \
                 + inner(sigma(U, p0, tau0, We, Pr, betav), Dincomp(v))*dx + Ra*Pr*inner(theta0*f,v)*dx \
-                + dot(p0*n, v)*ds - dot(Pr*betav*nabla_grad(U)*n, v)*ds\
-                - (Pr*(1-betav)/We)*dot(tau0*n, v)*ds\
-                + inner(D-Dincomp(u),R)*dx 
+                + inner(D-Dincomp(u),R)*dx \
+                - dot(sigma_n(U, p0, tau0, n, We, Pr, betav), v)*ds\
+ 
             a1 = lhs(Fu12)
             L1 = rhs(Fu12)
 
@@ -392,7 +393,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             D12 = as_matrix([[D12_vec[0], D12_vec[1]],
                             [D12_vec[1], D12_vec[2]]])
 
-            DEVSSr_u1 = 2*Pr*(1.-betav)*inner(D12,Dincomp(v))*dx            # Update DEVSS Stabilisation RHS     
+            DEVSSr_u1 = 2*Pr*(1.-betav+DOLFIN_EPS)*inner(D12,Dincomp(v))*dx            # Update DEVSS Stabilisation RHS     
 
             """# STRESS Half Step
             F12 = dot(u12,grad(tau)) - dot(grad(u12),tau) - dot(tau,tgrad(u12)) # Convection/Deformation Terms
@@ -415,8 +416,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             lhsFus = ((u - u0)/dt + dot(u12, nabla_grad(U)))
             Fus = dot(lhsFus, v)*dx + inner(D-Dincomp(u),R)*dx  + \
                 + inner(sigma(U, p0, tau0, We, Pr, betav), Dincomp(v))*dx + Ra*Pr*inner(theta0*f,v)*dx \
-                + dot(p0*n, v)*ds - Pr*betav*(dot(nabla_grad(U)*n, v)*ds) \
-                - Pr*((1.0-betav)/We)*dot(tau0*n, v)*ds\
+                 - dot(sigma_n(U, p0, tau0, n, We, Pr, betav), v)*ds
                     
                 
             a2= lhs(Fus)
@@ -479,7 +479,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             lhs_theta1 = (1.0/dt)*thetal + dot(u1,grad(thetal))
             rhs_theta1 = (1.0/dt)*thetar + dot(u1,grad(thetar)) + (1.0/dt)*theta0 + Vh*gamdot
             a8 = inner(lhs_theta1,r)*dx + inner(grad(thetal),grad(r))*dx + inner(We*tau1*grad(thetal),grad(r))*dx
-            L8 = inner(rhs_theta1,r)*dx + inner(grad(thetar),grad(r))*dx + Bi*inner(grad(theta0),n*r)*ds(3)  + Bi*inner(grad(theta0),n*r)*ds(1) + inner(We*tau1*grad(thetar),grad(r))*dx
+            L8 = inner(rhs_theta1,r)*dx + inner(grad(thetar),grad(r))*dx + Bi*inner(grad(theta0),n*r)*ds(1)  + Bi*inner(grad(theta0),n*r)*ds(4) + inner(We*tau1*grad(thetar),grad(r))*dx
 
             A8=assemble(a8)                                     # Assemble System
             b8=assemble(L8)
@@ -652,11 +652,11 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             if j==1 or j==loopend:
                 # Kinetic Energy
                 plt.figure(0)
-                plt.plot(x1, ek1, 'r-', label=r'$We=0$ (Newtonian), $Ra=1000')
+                plt.plot(x1, ek1, 'r-', label=r'$We=0.1$, $Ra=500')
                 plt.plot(x2, ek2, 'b-', label=r'$We=0.1$, $Ra=1000')
-                plt.plot(x3, ek3, 'c-', label=r'$We=0.5$, $Ra=1000')
-                plt.plot(x4, ek4, 'm-', label=r'$We=1.0$, $Ra=1000')
-                plt.plot(x5, ek5, 'g-', label=r'$We=1.0$, $Ra=5000')
+                plt.plot(x3, ek3, 'c-', label=r'$We=0.1$, $Ra=10000')
+                plt.plot(x4, ek4, 'm-', label=r'$We=0.1$, $Ra=20000')
+                plt.plot(x5, ek5, 'g-', label=r'$We=0.1$, $Ra=100000')
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
                 plt.ylabel('$E_k$')
@@ -664,11 +664,11 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.clf()
                 # Elastic Energy
                 plt.figure(1)
-                plt.plot(x1, ee1, 'r-', label=r'$We=0$ (Newtonian), $Ra=1000')
-                plt.plot(x2, ee2, 'b-', label=r'$We=0.1$, $Ra=1000')
-                plt.plot(x3, ee3, 'c-', label=r'$We=0.5$, $Ra=1000')
-                plt.plot(x4, ee4, 'm-', label=r'$We=1.0$, $Ra=1000')
-                plt.plot(x5, ee5, 'g-', label=r'$We=1.0$, $Ra=5000')
+                plt.plot(x1, ee1, 'r-', label=r'$We=0$, $Ra=500')
+                plt.plot(x2, ee2, 'b-', label=r'$We=0$, $Ra=1000')
+                plt.plot(x3, ee3, 'c-', label=r'$We=0$, $Ra=10000')
+                plt.plot(x4, ee4, 'm-', label=r'$We=0$, $Ra=20000')
+                plt.plot(x5, ee5, 'g-', label=r'$We=0$, $Ra=100000')
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
                 plt.ylabel('$E_e$')
@@ -676,11 +676,11 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.clf()
                 # Nusslet Number
                 plt.figure(2)
-                plt.plot(x1, nus1, 'r-', label=r'$We=0$ (Newtonian), $Ra=1000')
-                plt.plot(x2, nus2, 'b-', label=r'$We=0.1$, $Ra=1000')
-                plt.plot(x3, nus3, 'c-', label=r'$We=0.5$, $Ra=1000')
-                plt.plot(x4, nus4, 'm-', label=r'$We=1.0$, $Ra=1000')
-                plt.plot(x5, nus5, 'g-', label=r'$We=1.0$, $Ra=5000')
+                plt.plot(x1, nus1, 'r-', label=r'$We=0$, $Ra=500')
+                plt.plot(x2, nus2, 'b-', label=r'$We=0$, $Ra=1000')
+                plt.plot(x3, nus3, 'c-', label=r'$We=0$, $Ra=10000')
+                plt.plot(x4, nus4, 'm-', label=r'$We=0$, $Ra=20000')
+                plt.plot(x5, nus5, 'g-', label=r'$We=0$, $Ra=100000')
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
                 plt.ylabel('$Nu$')
@@ -876,13 +876,6 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
             if j==loopend:
                 quit()
-                jjj+=1
-                update_progress(flow_description+str(jjj), 1)
-                j = 0
-                mesh_refinement = False
-                x1 = x2 = x3 = x4 = x5 = list()
-                y = y1 = y3 = y4 = y5 = list()
-                ek1 = ek2 = ek3 = ek4 = ek5 = list()
 
             if jjj==3:
                 quit()
@@ -891,4 +884,4 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("flow-parameters.csv", mesh_resolution=50, simulation_time=10, mesh_refinement=False)
+    main("flow-parameters.csv", mesh_resolution=40, simulation_time=5, mesh_refinement=False)

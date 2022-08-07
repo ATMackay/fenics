@@ -161,7 +161,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
         class Bottom(SubDomain):
             def inside(self, x, on_boundary):
-                return True if x[1] < bottom_bound - DOLFIN_EPS and on_boundary  else False 
+                return True if x[1] < bottom_bound + DOLFIN_EPS and on_boundary  else False 
 
         no_slip = No_slip()
         left = Left()
@@ -185,10 +185,11 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         #Define Boundary Parts
 
         boundary_parts = MeshFunction("size_t", mesh, mesh.topology().dim() - 1) #FacetFunction("size_t", mesh)
-        no_slip.mark(boundary_parts,0)
-        left.mark(boundary_parts,1)
-        right.mark(boundary_parts,2)
-        top.mark(boundary_parts,3)
+        no_slip.mark(boundary_parts, 0)
+        left.mark(boundary_parts, 1)
+        right.mark(boundary_parts, 2)
+        top.mark(boundary_parts, 3)
+        bottom.mark(boundary_parts, 4)
         ds = Measure("ds")[boundary_parts]
 
         # Define boundary/stabilisation FUNCTIONS
@@ -242,22 +243,22 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
         # Set parameters for secondary loop -----------------------------------------------------------------------
 
-        betav = 0.5
+        betav = 0.99
         Ma = float(ma_row[jjj+1])
 
         # Set parameters for primary loop ------------------------------------------------        
         if j==1:
             Ra = float(ra_row[1])
-            We = float(we_row[3])
+            We = float(we_row[1])
         elif j==2:
             Ra = float(ra_row[2])
-            We = float(we_row[3])
+            We = float(we_row[1])
         elif j==3:
             Ra = float(ra_row[3])
-            We = float(we_row[3])
+            We = float(we_row[1])
         elif j==4:
             Ra = float(ra_row[3])
-            We = float(we_row[2])
+            We = float(we_row[1])
 
         print('############# TIME SCALE ############')
         print('Timestep size (s):', dt)
@@ -581,7 +582,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             lhs_theta1 = (1.0/dt)*rho1*thetal + rho1*dot(u1,grad(thetal))
             rhs_theta1 = (1.0/dt)*rho0*thetar + rho1*dot(u1,grad(thetar)) + (1.0/dt)*rho0*theta0 + Vh*gamdot
             a8 = inner(lhs_theta1,r)*dx + inner(grad(thetal),grad(r))*dx 
-            L8 = inner(rhs_theta1,r)*dx + inner(grad(thetar),grad(r))*dx + Bi*inner(grad(theta0),n*r)*ds(3) + Bi*inner(grad(theta0),n*r)*ds(1) + inner(We*tau1*grad(thetar),grad(r))*dx
+            L8 = inner(rhs_theta1,r)*dx + inner(grad(thetar),grad(r))*dx + Bi*inner(grad(theta0),n*r)*ds(3) + Bi*inner(grad(theta0),n*r)*ds(4) + inner(We*tau1*grad(thetar),grad(r))*dx
 
             A8=assemble(a8)                                     # Assemble System
             b8=assemble(L8)
@@ -640,7 +641,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
             ratio = 0.3/(1*err_count + 1.0) # Proportion of cells that we want to refine
             tau_average = project((tau1_vec[0]+tau1_vec[1]+tau1_vec[2])/3.0 , Qt) 
-            error_rat = project(kapp/(tau_average + 0.000001) , Qt)
+            error_rat = project(kapp/(tau_average + DOLFIN_EPS) , Qt)
             error_rat = absolute(error_rat)
 
             mesh_refinement = False
@@ -730,10 +731,10 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             # Plot Kinetic and elasic Energies for different REYNOLDS numbers at constant Weissenberg Number    
             # Kinetic Energy
             plt.figure(0)
-            plt.plot(x1, ek1, 'r-', label=r'$Ra=500$,$We=0.25$')
-            plt.plot(x2, ek2, 'b-', label=r'$Ra=1000$,$We=0.25$')
-            plt.plot(x3, ek3, 'c-', label=r'$Ra=5000$,$We=0.25$')
-            plt.plot(x4, ek4, 'm-', label=r'$Ra=5000$,$We=0.1$')
+            plt.plot(x1, ek1, 'r-', label=r'$Ra=500$,$We=0$')
+            plt.plot(x2, ek2, 'b-', label=r'$Ra=1000$,$We=0$')
+            plt.plot(x3, ek3, 'c-', label=r'$Ra=10000$,$We=0$')
+            plt.plot(x4, ek4, 'm-', label=r'$Ra=20000$,$We=0$')
             #plt.plot(x5, ek5, 'g-', label=r'$Ra=50$')
             plt.legend(loc='best')
             plt.xlabel('$t$')
@@ -743,10 +744,10 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             plt.close()
             # Elastic Energy
             plt.figure(1)
-            plt.plot(x1, ee1, 'r-', label=r'$Ra=500$,$We=0.25$')
-            plt.plot(x2, ee2, 'b-', label=r'$Ra=1000$,$We=0.25$')
-            plt.plot(x3, ee3, 'c-', label=r'$Ra=5000$,$We=0.25$')
-            plt.plot(x4, ee4, 'm-', label=r'$Ra=5000$,$We=0.1$')
+            plt.plot(x1, ee1, 'r-', label=r'$Ra=500$,$We=0$')
+            plt.plot(x2, ee2, 'b-', label=r'$Ra=1000$,$We=0$')
+            plt.plot(x3, ee3, 'c-', label=r'$Ra=10000$,$We=0$')
+            plt.plot(x4, ee4, 'm-', label=r'$Ra=20000$,$We=0$')
             #plt.plot(x5, ee5, 'g-', label=r'$Ra=50$')
             plt.legend(loc='best')
             plt.xlabel('$t$')
@@ -757,10 +758,10 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             plt.close()
 
             plt.figure(2)
-            plt.plot(x1, nus1, 'r-', label=r'$Ra=500$,$We=0.25$')
-            plt.plot(x2, nus2, 'b-', label=r'$Ra=1000$,$We=0.25$')
-            plt.plot(x3, nus3, 'c-', label=r'$Ra=5000$,$We=0.25$')
-            plt.plot(x4, nus4, 'm-', label=r'$Ra=5000$,$We=0.1$')
+            plt.plot(x1, nus1, 'r-', label=r'$Ra=500$,$We=0$')
+            plt.plot(x2, nus2, 'b-', label=r'$Ra=1000$,$We=0$')
+            plt.plot(x3, nus3, 'c-', label=r'$Ra=10000$,$We=0$')
+            plt.plot(x4, nus4, 'm-', label=r'$Ra=20000$,$We=0$')
             #plt.plot(x5, ee5, 'g-', label=r'$We=2.0$')
             plt.legend(loc='best')
             plt.xlabel('time(s)')
@@ -921,7 +922,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             psivals = psiq.vector().get_local() 
             tauxx = project(tau1_vec[0], Q)
             tauxxvals = tauxx.vector().get_local()
-            xyvals = mesh.coordinates()     # CLEAN THIS UP!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            xyvals = mesh.coordinates()     
             xvalsq = interpolate(x, Q)#xyvals[:,0]
             yvalsq= interpolate(y, Q)#xyvals[:,1]
             xvalsw = interpolate(x, Qt)#xyvals[:,0]
@@ -1017,7 +1018,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("flow-parameters.csv", mesh_resolution=50, simulation_time=15, mesh_refinement=False)
+    main("flow-parameters.csv", mesh_resolution=50, simulation_time=5, mesh_refinement=False)
 
 
 

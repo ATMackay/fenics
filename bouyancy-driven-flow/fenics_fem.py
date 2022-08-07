@@ -66,7 +66,16 @@ def Dcomp (w):
     return ((grad(w) + tgrad(w))-(2.0/3)*div(w)*Identity(len(w)))/2
 
 def sigma(u, p, Tau, We, Pr, betav):
-    return 2*Pr*betav*Dincomp(u) - p*Identity(len(u)) + Pr*((1-betav)/(We))*(Tau-Identity(len(u)))
+    if betav < 1:
+        return 2*Pr*betav*Dincomp(u) - p*Identity(len(u)) + Pr*((1-betav)/(We))*(Tau-Identity(len(u)))
+    else:
+        return 2*Pr*betav*Dincomp(u) - p*Identity(len(u)) 
+
+def sigma_n(U, p, tau, n, We, Pr, betav):
+    if betav < 1:
+        return Pr*betav*nabla_grad(U)*n + (Pr*(1-betav)/We)*tau*n - p*n
+    else:
+        return Pr*betav*nabla_grad(U)*n - p*n 
 
 def sigmacom(u, p, Tau, We, Pr, betav):
     return 2*Pr*betav*Dcomp(u) - p*Identity(len(u)) + Pr*((1-betav)/(We))*(Tau-Identity(len(u)))
