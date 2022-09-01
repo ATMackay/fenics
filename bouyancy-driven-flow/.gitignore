@@ -5,7 +5,7 @@ __pycache__/
 
 
 # Ignore txt and png files 
-
+*.npy
 *.txt
 *.png
 *.eps

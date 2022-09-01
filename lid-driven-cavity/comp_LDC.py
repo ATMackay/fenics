@@ -362,9 +362,6 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         ee_array=list()
         data_tag = "comp-flow"
 
-        conerr=list()
-        deferr=list()
-        tauerr=list()
 
 
         # Time-stepping

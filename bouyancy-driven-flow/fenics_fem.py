@@ -471,19 +471,20 @@ def function_spaces(mesh, order):
     Qr = FunctionSpace(mesh,Q_s)
     return W, V, Vd, Z, Zd, Zc, Q, Qt, Qr
 
-"""
-def LPSL_Stress_Stabilisation(We, c2 u_n1, tau, tau_n1, h, Zd, Zc, Qt, Rt):
-    I_vec = Expression(('1.0','0.0','1.0'), degree=2)   
-        # Update Stabilisation (Copy and Paste Stabilisation Technique from above)
-    F1R = Fdefcom(u1, tau1)  #Compute the residual in the STRESS EQUATION
-    F1R_vec = as_vector([F1R[0,0], F1R[1,0], F1R[1,1]])
-    Dcomp1_vec = as_vector([Dcomp(u1)[0,0], Dcomp(u1)[1,0], Dcomp(u1)[1,1]])
-    restau0 = We/dt*(tau1_vec-tau0_vec) + We*F1R_vec + tau1_vec - I_vec
-    res_test = project(restau0, Zd)
-    res_orth = project(restau0-res_test, Zc)                                
-    res_orth_norm_sq = project(inner(res_orth,res_orth), Qt)     # Project residual norm onto discontinuous space
-    res_orth_norm = np.power(res_orth_norm_sq, 0.5)
-    kapp = project(res_orth_norm, Qt)
-    LPSl_stress = inner(kapp*h*c1*grad(tau),grad(Rt))*dx + inner(kapp*h*c2*div(tau),div(Rt))*dx  # Stress Stabilisation
-    return LPSl_stress
-"""
+def save_energy_arrays(t, ek, ee, j, tag):
+    np.save('data/time-data-'+str(j)+'-'+str(tag)+'.npy', t)
+    np.save('data/ek-data-'+str(j)+'-'+str(tag)+'.npy', ek)
+    np.save('data/ee-data-'+str(j)+'-'+str(tag)+'.npy', ee)
+
+def load_energy_arrays(j, tag):
+    t = np.load('data/time-data-'+str(j)+'-'+str(tag)+'.npy')
+    ek = np.load('data/ek-data-'+str(j)+'-'+str(tag)+'.npy')
+    ee = np.load('data/ee-data-'+str(j)+'-'+str(tag)+'.npy')
+    return t, ek, ee
+
+def save_data_array(nus, j, tag):
+    np.save('data/nus-data-'+str(j)+'-'+str(tag)+'.npy', nus)
+
+def load_data_array(j, tag):
+    nus = np.load('data/nus-data-'+str(j)+'-'+str(tag)+'.npy')
+    return nus
