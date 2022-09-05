@@ -2,6 +2,7 @@
 
 import csv
 from fenics_fem import *  # Import FEniCS helper functions
+import datetime
 
 
 def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
@@ -12,12 +13,11 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     Tf = T_f
 
     # Experiment Run Time
-    dt = 0.00001  #Timestep
+    dt = 0.001  #Timestep
 
     # Nondimensional flow parameters
     B, L = 1, 1 # Length
     U = 1
-    betav = 0.9  
     Ra = 10000                           #Rayleigh Number
     Pr = 1.0
     We = 0.01                          #Weisenberg NUmber
@@ -35,34 +35,11 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 
     # SET LOOPING PARAMETER
-    loopend = 5
+    loopend = 6
     j = 0                            
     err_count = 0
     jjj = 0
-
-    # FEM Solution Convergence/Energy Plot
-    # TODO FIX this so that fewer arrays are being defined
-    x1=list()
-    x2=list()
-    x3=list()
-    x4=list()
-    x5=list()
-    y=list()
-    ek1=list()
-    ek2=list()
-    ek3=list()
-    ek4=list()
-    ee1=list()
-    ee2=list()
-    ee3=list()
-    ee4=list()
-    ek5=list()
-    ee5=list()
-    nus1 = list()
-    nus2 = list()
-    nus3 = list()
-    nus4 = list()
-    nus5 = list()        
+      
     while j < loopend:
         j+=1
         t=0.0
@@ -160,7 +137,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         # Define boundary/stabilisation FUNCTIONS
         # ramped thermal boundary condition
         #ramp_function = Expression('0.5*(1+tanh(8*(t-0.5)))*(T_h-T_0)+T_0', degree=2, t=0.0, T_0=T_0, T_h=T_h)
-        ramp_function = Expression('0.5*(1+tanh(4*(t-0.5)))*(T_h-T_0)+T_0', degree=2, t=0.0, T_0=T_0, T_h=T_h)
+        ramp_function = Expression('0.5*(1+tanh(4*(t-1.5)))*(T_h-T_0)+T_0', degree=2, t=0.0, T_0=T_0, T_h=T_h)
         # direction of gravitational force (0,-1)
         f = Expression(('0','-1'), degree=2)
 
@@ -203,21 +180,24 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             we_row = my_csv_data[1]
 
         # Set parameters for primary loop ------------------------------------------------        
+        betav = 0.5
+        Ra = float(ra_row[jjj+1])
+        We = float(we_row[j])
+
+        # Set parameters for primary loop ------------------------------------------------        
         if j==1:
-            Ra = float(ra_row[1])
-            We = float(we_row[1])
+            label_1 = "Ra="+str(Ra)+",We="+str(We)
         elif j==2:
-            Ra = float(ra_row[2])
-            We = float(we_row[1])
+            label_2 = "Ra="+str(Ra)+",We="+str(We)
         elif j==3:
-            Ra = float(ra_row[3])
-            We = float(we_row[1])
+            label_3 = "Ra="+str(Ra)+",We="+str(We)
         elif j==4:
-            Ra = float(ra_row[4])
-            We = float(we_row[1])
+            label_4 = "Ra="+str(Ra)+",We="+str(We)
         elif j==5:
-            Ra = float(ra_row[5])
-            We = float(we_row[1])
+            label_5 = "Ra="+str(Ra)+",We="+str(We)
+        elif j==6:
+            label_6 = "Ra="+str(Ra)+",We="+str(We)
+
 
         print('############# TIME SCALE ############')
         print('Timestep size (s):', dt)
@@ -328,16 +308,25 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         solverp = KrylovSolver("bicgstab", "default")
 
         # FEM Solution Convergence Plot
-        x=list()
-        y=list()
+        t_array=list()
+        ek_array=list()
+        ee_array=list()
+        nus_array=list()
+        data_tag = "incomp-flow"
 
         # Time-stepping
         t = 0.0
+        start, elapsed, total_elapsed = 0.0, 0.0, 0.0
         iter = 0            # iteration counter
         while t < Tf + DOLFIN_EPS:
-            flow_description = "incompressible bouyancy-driven flow: loop: " +str(jjj) + ", Ra: "+str(Ra)+", We: "+str(We)+", Pr: "+str(Pr)+", al: "+str(al)+", betav: "+str(betav)
-            update_progress(flow_description, t/Tf) # Update progress bar
             iter += 1
+            start = time.process_time()
+            time_left = (Tf-t)/dt * (elapsed) 
+            flow_description = "incompressible bouyancy-driven flow: "
+            flow_description += "loop: "+str(jjj) +"-"+str(j)+ ", Ra: "+str(Ra)+", We: "+str(We)+", Pr: "+str(Pr)+", al: "+str(al)+", betav: "+str(betav)
+            flow_description += ", time taken: " + str(datetime.timedelta(seconds= total_elapsed))
+            flow_description += ", (est) time to completion: " + str(datetime.timedelta(seconds= time_left))
+            update_progress(flow_description, t/Tf) # Update progress bar
             # Set Function timestep
             ramp_function.t = t
 
@@ -498,34 +487,17 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             Nus = assemble(-Tdx*ds(2))
             
             # Record Elastic & Kinetic Energy Values 
-            if j==1:
-                x1.append(t)
-                ek1.append(E_k)
-                ee1.append(E_e)
-                nus1.append(Nus)
-            if j==2:
-                x2.append(t)
-                ek2.append(E_k)
-                ee2.append(E_e)
-                nus2.append(Nus)
-            if j==3:
-                x3.append(t)
-                ek3.append(E_k)
-                ee3.append(E_e)
-                nus3.append(Nus)
-            if j==4:
-                x4.append(t)
-                ek4.append(E_k)
-                ee4.append(E_e)
-                nus4.append(Nus)
-            if j==5:
-                x5.append(t)
-                ek5.append(E_k)
-                ee5.append(E_e)
-                nus5.append(Nus)
+            t_array.append(t)
+            ek_array.append(E_k)
+            ee_array.append(E_e)
+            nus_array.append(Nus)
 
             # Move to next time step
             t += dt
+
+            elapsed = (time.process_time() - start)
+            total_elapsed += elapsed
+
         if mesh_refinement == True: 
             # Calculate Stress Residual 
             F1R = Fdef(u1, tau1)  
@@ -546,14 +518,6 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             if error_rat.vector().get_local().max() > 0.01 and err_count < 1:
                 err_count+=1
                 mesh = adaptive_refinement(mesh, norm_kapp, ratio)
-                #mplot(error_rat)
-                #plt.colorbar()
-                #plt.savefig("adaptive-error-function.eps")
-                #plt.clf()
-                #mplot(mesh)
-                #plt.savefig("adaptive-mesh.eps")
-                #plt.clf()
-                #jj=0
                 conv_fail = 0
 
             # Reset Parameters
@@ -561,12 +525,11 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             j = 0
             dt = 0.001
             Tf = T_f
-            th = 1.0
-            x1 = x2 = x3 = x4 = x5 = list()
-            y = y1 = y3 = y4 = y5 = list()
-            ek1 = ek2 = ek3 = ek4 = ek5 = list()
-            ee1 = ee2 = ee3 = ee4 = ee5 = list()
         else:
+            # PLOTS
+            # Save array data to file
+            save_energy_arrays(t_array, ek_array, ee_array, j, data_tag)
+            save_data_array(nus_array, j, data_tag)
             mplot(kapp)
             plt.colorbar()
             plt.savefig("plots/kappa.png")
@@ -597,66 +560,40 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 text_file.write("Ra="+str(Ra)+", We="+str(We)+", t="+str(t)+", u_max"+str(u_max)+'\n')"""
 
             # Nusslet Number data
-            if j==1:
-                Nus_max = max(nus1)
-            if j==2:
-                Nus_max = max(nus2)
-            if j==3:
-                Nus_max = max(nus3)
-            if j==4:
-                Nus_max = max(nus4)
-            if j==5:
-                Nus_max = max(nus5) 
-            with open("results/Nusslet Number.txt", "a") as text_file:
+            Nus_max = max(nus_array)
+            with open("results/IncompressibleNussletNumber.txt", "a") as text_file:
                 text_file.write("Ra="+str(Ra)+", We="+str(We)+", t="+str(t)+":  Nu="+str(Nus)+\
                                 "  Max Nu="+str(Nus_max)+'\n'+'\n')
 
 
-
-            if j==3:
-                peakEk1 = max(ek1)
-                peakEk2 = max(ek2)
-                peakEk3 = max(ek3)
-                with open("results/Incompressible ConformEnergy.txt", "a") as text_file:
-                    text_file.write("Ra="+str(Ra)+", We="+str(We)+"-------Peak Kinetic Energy: "+str(peakEk3)+"Incomp Kinetic En"+str(peakEk1)+'\n')
-
-                #Plot Kinetic and elasic Energies for different REYNOLDS numbers at constant Weissenberg Number    
-            """if max(norm(w1.vector(),'linf'),norm(p1.vector(), 'linf')) < 10E6 and j==loopend or j==3 or j==1:
-                # Kinetic Energy
-                plt.figure(0)
-                plt.plot(x1, ek1, 'r-', label=r'$Ra=100$')
-                plt.plot(x2, ek2, 'b-', label=r'$Ra=500$')
-                plt.plot(x3, ek3, 'c-', label=r'$Ra=1000$')
-                plt.plot(x4, ek4, 'm-', label=r'$Ra=5000$')
-                plt.plot(x5, ek5, 'g-', label=r'$Ra=10000$')
-                plt.legend(loc='best')
-                plt.xlabel('time(s)')
-                plt.ylabel('E_k')
-                plt.savefig("plots/incompressible-flow/Fixed_We_KineticEnergyRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"dt="+str(dt)+".png")
-                # Elastic Energy
-                plt.figure(1)
-                plt.plot(x1, ee1, 'r-', label=r'$Ra=100$')
-                plt.plot(x2, ee2, 'b-', label=r'$Ra=500$')
-                plt.plot(x3, ee3, 'c-', label=r'$Ra=1000$')
-                plt.plot(x4, ee4, 'm-', label=r'$Ra=5000$')
-                plt.plot(x5, ee5, 'g-', label=r'$Ra=10000$')
-                plt.legend(loc='best')
-                plt.xlabel('time(s)')
-                plt.ylabel('E_e')
-                plt.savefig("plots/incompressible-flow/Fixed_We_ElasticEnergyRa="+str(Ra)+"We="+str(We)+"b="+str(betav)+"dt="+str(dt)+".png")
-                plt.clf()"""
+            peakEk = max(ek_array)
+            with open("results/Incompressible ConformEnergy.txt", "a") as text_file:
+                text_file.write("Ra="+str(Ra)+", We="+str(We)+"-------peak Kinetic Energy: "+str(peakEk)+'\n')
 
             plt.close()
 
                 #Plot Kinetic and elasic Energies for different Weissenberg numbers at Re=0 (METHOD 2)
-            if j==1 or j==loopend:
+            if j==loopend:
+                x1, ek1, ee1 = load_energy_arrays(1, data_tag)
+                nus1 = load_data_array(1, data_tag)
+                x2, ek2, ee2 = load_energy_arrays(2, data_tag)
+                nus2 = load_data_array(2, data_tag)
+                x3, ek3, ee3 = load_energy_arrays(3, data_tag)
+                nus3 = load_data_array(3, data_tag)
+                x4, ek4, ee4 = load_energy_arrays(4, data_tag)
+                nus4 = load_data_array(4, data_tag)
+                x5, ek5, ee5 = load_energy_arrays(5, data_tag)
+                nus5 = load_data_array(5, data_tag)
+                x6, ek6, ee6 = load_energy_arrays(6, data_tag)
+                nus6 = load_data_array(6, data_tag)
                 # Kinetic Energy
                 plt.figure(0)
-                plt.plot(x1, ek1, 'r-', label=r'$We=0.1$, $Ra=500')
-                plt.plot(x2, ek2, 'b-', label=r'$We=0.1$, $Ra=1000')
-                plt.plot(x3, ek3, 'c-', label=r'$We=0.1$, $Ra=10000')
-                plt.plot(x4, ek4, 'm-', label=r'$We=0.1$, $Ra=20000')
-                plt.plot(x5, ek5, 'g-', label=r'$We=0.1$, $Ra=100000')
+                plt.plot(x1, ek1, 'r-', label=r'%s' % label_1)
+                plt.plot(x2, ek2, 'b-', label=r'%s' % label_2)
+                plt.plot(x3, ek3, 'c-', label=r'%s' % label_3)
+                plt.plot(x4, ek4, 'm-', label=r'%s' % label_4)
+                plt.plot(x5, ek5, 'r--', label=r'%s' % label_5)
+                plt.plot(x6, ek6, 'b--', label=r'%s' % label_6)
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
                 plt.ylabel('$E_k$')
@@ -664,11 +601,12 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.clf()
                 # Elastic Energy
                 plt.figure(1)
-                plt.plot(x1, ee1, 'r-', label=r'$We=0$, $Ra=500')
-                plt.plot(x2, ee2, 'b-', label=r'$We=0$, $Ra=1000')
-                plt.plot(x3, ee3, 'c-', label=r'$We=0$, $Ra=10000')
-                plt.plot(x4, ee4, 'm-', label=r'$We=0$, $Ra=20000')
-                plt.plot(x5, ee5, 'g-', label=r'$We=0$, $Ra=100000')
+                plt.plot(x1, ee1, 'r-', label=r'%s' % label_1)
+                plt.plot(x2, ee2, 'b-', label=r'%s' % label_2)
+                plt.plot(x3, ee3, 'c-', label=r'%s' % label_3)
+                plt.plot(x4, ee4, 'm-', label=r'%s' % label_4)
+                plt.plot(x5, ee5, 'r--', label=r'%s' % label_5)
+                plt.plot(x6, ee6, 'b--', label=r'%s' % label_6)
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
                 plt.ylabel('$E_e$')
@@ -676,11 +614,12 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.clf()
                 # Nusslet Number
                 plt.figure(2)
-                plt.plot(x1, nus1, 'r-', label=r'$We=0$, $Ra=500')
-                plt.plot(x2, nus2, 'b-', label=r'$We=0$, $Ra=1000')
-                plt.plot(x3, nus3, 'c-', label=r'$We=0$, $Ra=10000')
-                plt.plot(x4, nus4, 'm-', label=r'$We=0$, $Ra=20000')
-                plt.plot(x5, nus5, 'g-', label=r'$We=0$, $Ra=100000')
+                plt.plot(x1, nus1, 'r-', label=r'%s' % label_1)
+                plt.plot(x2, nus2, 'b-', label=r'%s' % label_2)
+                plt.plot(x3, nus3, 'c-', label=r'%s' % label_3)
+                plt.plot(x4, nus4, 'm-', label=r'%s' % label_4)
+                plt.plot(x5, nus5, 'r--', label=r'%s' % label_5)
+                plt.plot(x6, nus6, 'b--', label=r'%s' % label_6)
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
                 plt.ylabel('$Nu$')
@@ -875,13 +814,16 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             Tf=T_f    
 
             if j==loopend:
-                quit()
+                jjj+=1
+                update_progress(flow_description+str(jjj), 1)
+                j = 0
+                mesh_refinement = False
 
-            if jjj==3:
+            if jjj==8:
                 quit()
        
 
 
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("flow-parameters.csv", mesh_resolution=40, simulation_time=5, mesh_refinement=False)
+    main("flow-parameters.csv", mesh_resolution=40, simulation_time=10, mesh_refinement=False)

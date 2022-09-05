@@ -32,6 +32,7 @@ This Python module contains functions for computing compressible and non-Newtoni
 
 import csv
 from fenics_fem import *  # Import FEniCS helper functions 
+import datetime
 
 
 def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
@@ -43,7 +44,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     Tf = T_f
 
     # Timestepping parameters
-    dt = 0.001  #Timestep
+    dt = 0.0005  #Timestep
 
     # Nondimensional flow parameters
     B, L = 1, 1            # Length
@@ -170,7 +171,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         # Define boundary/stabilisation FUNCTIONS
         # ramped thermal boundary condition
         #ramp_function = Expression('0.5*(1+tanh(8*(t-0.5)))*(T_h-T_0)+T_0', degree=2, t=0.0, T_0=T_0, T_h=T_h)
-        ramp_function = Expression('0.5*(1+tanh(4*(t-1.0)))*(T_h-T_0)+T_0', degree=2, t=0.0, T_0=T_0, T_h=T_h)
+        ramp_function = Expression('0.5*(1+tanh(4*(t-1.5)))*(T_h-T_0)+T_0', degree=3, t=0.0, T_0=T_0, T_h=T_h)
         # direction of gravitational force (0,-1)
         f = Expression(('0','-1'), degree=2)
         k = Expression(('0','1'), degree=2)
@@ -219,13 +220,12 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         # Set parameters for secondary loop -----------------------------------------------------------------------
 
         betav = 0.5
-        Ra = float(ra_row[jjj+1])
+        Ra = float(ra_row[jjj+2])
         Ma = float(ma_row[2])
         We = float(we_row[j])
 
         # Set parameters for primary loop ------------------------------------------------        
         if j==1:
-            betav = 0.999
             label_1 = "Ra="+str(Ra)+",We="+str(We)+",Ma="+str(Ma)
         elif j==2:
             label_2 = "Ra="+str(Ra)+",We="+str(We)+",Ma="+str(Ma)
@@ -362,10 +362,17 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 
         # Time-stepping
-        t = 0.0
+        t = 0.0        
+        start, elapsed, total_elapsed = 0.0, 0.0, 0.0
         iter = 0            # iteration counter
         while t < Tf + DOLFIN_EPS:
-            flow_description = "compressible bouyancy-driven flow: loop: " +str(j) + ", Ra: "+str(Ra)+", We: "+str(We)+", Ma: "+str(Ma)+", Pr: "+str(Pr)+", al_1: "+str(al_1)+", al_2: "+str(al_2)+", betav: "+str(betav)
+            iter += 1
+            start = time.process_time()
+            time_left = (Tf-t)/dt * (elapsed) 
+
+            flow_description = "compressible bouyancy-driven flow: loop: " +str(j) 
+            flow_description += ", Ra: "+str(Ra)+", We: "+str(We)+", Ma: "+str(Ma)+", Pr: "+str(Pr)+", al_1: "+str(al_1)+", al_2: "+str(al_2)+", betav: "+str(betav)
+            flow_description += "r = " + str(ramp_function.t)
             update_progress(flow_description, t/Tf) # Update progress bar
             iter += 1
             # Set Function timestep
@@ -585,6 +592,9 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             # Move to next timestep
             t += dt
 
+            elapsed = (time.process_time() - start)
+            total_elapsed += elapsed
+
 
         if mesh_refinement == True: 
             # Calculate Stress Residual 
@@ -695,7 +705,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.plot(x3, ek3, 'c-', label=r'%s' % label_3)
                 plt.plot(x4, ek4, 'm-', label=r'%s' % label_4)
                 plt.plot(x5, ek5, 'r--', label=r'%s' % label_5)
-                plt.plot(x6, ek6, 'r--', label=r'%s' % label_6)
+                plt.plot(x6, ek6, 'b--', label=r'%s' % label_6)
                 #plt.plot(x5, ek5, 'g-', label=r'$Ra=50$')
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
@@ -710,7 +720,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.plot(x3, ee3, 'c-', label=r'%s' % label_3)
                 plt.plot(x4, ee4, 'm-', label=r'%s' % label_4)
                 plt.plot(x5, ee5, 'r--', label=r'%s' % label_5)
-                plt.plot(x6, ee6, 'r--', label=r'%s' % label_6)
+                plt.plot(x6, ee6, 'b--', label=r'%s' % label_6)
                 #plt.plot(x5, ee5, 'g-', label=r'$Ra=50$')
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
@@ -725,7 +735,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.plot(x3, nus3, 'c-', label=r'%s' % label_3)
                 plt.plot(x4, nus4, 'm-', label=r'%s' % label_4)
                 plt.plot(x5, nus5, 'r--', label=r'%s' % label_5)
-                plt.plot(x6, nus6, 'r--', label=r'%s' % label_6)
+                plt.plot(x6, nus6, 'b--', label=r'%s' % label_6)
                 #plt.plot(x5, ee5, 'g-', label=r'$We=2.0$')
                 plt.legend(loc='best')
                 plt.xlabel('time(s)')

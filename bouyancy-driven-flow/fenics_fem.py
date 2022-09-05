@@ -18,7 +18,7 @@ pi=3.14159265359
 
 # Progress Bar
 def update_progress(job_title, progress):
-    length = 50 # modify this to change the length
+    length = 20 # modify this to change the length
     block = int(round(length*progress))
     msg = "\r{0}: [{1}] {2}%".format(job_title, "#"*block + "-"*(length-block), round(progress*100, 4))
     if progress >= 1: msg += " DONE\r\n"
