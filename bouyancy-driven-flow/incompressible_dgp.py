@@ -35,10 +35,12 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 
     # SET LOOPING PARAMETER
-    loopend = 6
+    loopend = 5
     j = 0                            
     err_count = 0
-    jjj = 0
+    jjj = 2
+
+
       
     while j < loopend:
         j+=1
@@ -184,19 +186,23 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         Ra = float(ra_row[jjj+1])
         We = float(we_row[j])
 
+        data_tag = "incomp-flow-"
+
         # Set parameters for primary loop ------------------------------------------------        
         if j==1:
-            label_1 = "Ra="+str(Ra)+",We="+str(We)
+            label_1 = "We="+str(We) #"Ra="+str(Ra)+",We="+str(We)
         elif j==2:
-            label_2 = "Ra="+str(Ra)+",We="+str(We)
+            label_2 = "We="+str(We) #"Ra="+str(Ra)+",We="+str(We)
         elif j==3:
-            label_3 = "Ra="+str(Ra)+",We="+str(We)
+            label_3 = "We="+str(We) #"Ra="+str(Ra)+",We="+str(We)
         elif j==4:
-            label_4 = "Ra="+str(Ra)+",We="+str(We)
+            label_4 = "We="+str(We) #"Ra="+str(Ra)+",We="+str(We)
         elif j==5:
-            label_5 = "Ra="+str(Ra)+",We="+str(We)
+            label_5 = "We="+str(We) #"Ra="+str(Ra)+",We="+str(We)
         elif j==6:
-            label_6 = "Ra="+str(Ra)+",We="+str(We)
+            label_6 = "We="+str(We) #"Ra="+str(Ra)+",We="+str(We)
+
+        
 
 
         print('############# TIME SCALE ############')
@@ -312,7 +318,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         ek_array=list()
         ee_array=list()
         nus_array=list()
-        data_tag = "incomp-flow"
+
 
         # Time-stepping
         t = 0.0
@@ -528,8 +534,8 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         else:
             # PLOTS
             # Save array data to file
-            save_energy_arrays(t_array, ek_array, ee_array, j, data_tag)
-            save_data_array(nus_array, j, data_tag)
+            save_energy_arrays(t_array, ek_array, ee_array, jjj, j, data_tag)
+            save_data_array(nus_array, jjj, j, data_tag)
             mplot(kapp)
             plt.colorbar()
             plt.savefig("plots/kappa.png")
@@ -550,14 +556,14 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
             """# Data on Kinetic/Elastic Energies
             with open("Incompressible ConformEnergy.txt", "a") as text_file:
-                text_file.write("Ra="+str(Ra)+", We="+str(We)+", t="+str(t)+", E_k="+str(E_k)+", E_e="+str(E_e)+'\n')
+                text_file.write("Ra="+str(Ra)+", We="+str(We)+", t="+str(t)+", E_k="+str(E_k)+", E_e="+str(E_e)+'\n')"""
 
-            # Data on Max Flow Speed
+            # Max steady-state flow speed data
             u_abs = magnitude(u1)
             u_abs = project(u_abs, Q)
             u_max = u_abs.vector().get_local().max()
-            with open("Incompressible Max Flow Speed.txt", "a") as text_file:
-                text_file.write("Ra="+str(Ra)+", We="+str(We)+", t="+str(t)+", u_max"+str(u_max)+'\n')"""
+            with open("results/IncompressibleMaxFlowSpeed.txt", "a") as text_file:
+                text_file.write("Ra="+str(Ra)+", We="+str(We)+", t="+str(t)+", u_max"+str(u_max)+'\n')
 
             # Nusslet Number data
             Nus_max = max(nus_array)
@@ -567,25 +573,25 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 
             peakEk = max(ek_array)
-            with open("results/Incompressible ConformEnergy.txt", "a") as text_file:
+            with open("results/IncompressibleConformEnergy.txt", "a") as text_file:
                 text_file.write("Ra="+str(Ra)+", We="+str(We)+"-------peak Kinetic Energy: "+str(peakEk)+'\n')
 
             plt.close()
 
                 #Plot Kinetic and elasic Energies for different Weissenberg numbers at Re=0 (METHOD 2)
             if j==loopend:
-                x1, ek1, ee1 = load_energy_arrays(1, data_tag)
-                nus1 = load_data_array(1, data_tag)
-                x2, ek2, ee2 = load_energy_arrays(2, data_tag)
-                nus2 = load_data_array(2, data_tag)
-                x3, ek3, ee3 = load_energy_arrays(3, data_tag)
-                nus3 = load_data_array(3, data_tag)
-                x4, ek4, ee4 = load_energy_arrays(4, data_tag)
-                nus4 = load_data_array(4, data_tag)
-                x5, ek5, ee5 = load_energy_arrays(5, data_tag)
-                nus5 = load_data_array(5, data_tag)
-                x6, ek6, ee6 = load_energy_arrays(6, data_tag)
-                nus6 = load_data_array(6, data_tag)
+                x1, ek1, ee1 = load_energy_arrays(jjj, 1, data_tag)
+                nus1 = load_data_array(jjj, 1, data_tag)
+                x2, ek2, ee2 = load_energy_arrays(jjj, 2, data_tag)
+                nus2 = load_data_array(jjj, 2, data_tag)
+                x3, ek3, ee3 = load_energy_arrays(jjj, 3, data_tag)
+                nus3 = load_data_array(jjj, 3, data_tag)
+                x4, ek4, ee4 = load_energy_arrays(jjj, 4, data_tag)
+                nus4 = load_data_array(jjj, 4, data_tag)
+                x5, ek5, ee5 = load_energy_arrays(jjj, 5, data_tag)
+                nus5 = load_data_array(jjj, 5, data_tag)
+                #x6, ek6, ee6 = load_energy_arrays(jjj, 6, data_tag)
+                #nus6 = load_data_array(jjj, 6, data_tag)
                 # Kinetic Energy
                 plt.figure(0)
                 plt.plot(x1, ek1, 'r-', label=r'%s' % label_1)
@@ -593,7 +599,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.plot(x3, ek3, 'c-', label=r'%s' % label_3)
                 plt.plot(x4, ek4, 'm-', label=r'%s' % label_4)
                 plt.plot(x5, ek5, 'r--', label=r'%s' % label_5)
-                plt.plot(x6, ek6, 'b--', label=r'%s' % label_6)
+                #plt.plot(x6, ek6, 'b--', label=r'%s' % label_6)
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
                 plt.ylabel('$E_k$')
@@ -606,7 +612,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.plot(x3, ee3, 'c-', label=r'%s' % label_3)
                 plt.plot(x4, ee4, 'm-', label=r'%s' % label_4)
                 plt.plot(x5, ee5, 'r--', label=r'%s' % label_5)
-                plt.plot(x6, ee6, 'b--', label=r'%s' % label_6)
+                #plt.plot(x6, ee6, 'b--', label=r'%s' % label_6)
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
                 plt.ylabel('$E_e$')
@@ -619,7 +625,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.plot(x3, nus3, 'c-', label=r'%s' % label_3)
                 plt.plot(x4, nus4, 'm-', label=r'%s' % label_4)
                 plt.plot(x5, nus5, 'r--', label=r'%s' % label_5)
-                plt.plot(x6, nus6, 'b--', label=r'%s' % label_6)
+                #plt.plot(x6, nus6, 'b--', label=r'%s' % label_6)
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
                 plt.ylabel('$Nu$')

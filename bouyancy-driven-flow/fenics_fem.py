@@ -471,20 +471,20 @@ def function_spaces(mesh, order):
     Qr = FunctionSpace(mesh,Q_s)
     return W, V, Vd, Z, Zd, Zc, Q, Qt, Qr
 
-def save_energy_arrays(t, ek, ee, j, tag):
-    np.save('data/time-data-'+str(j)+'-'+str(tag)+'.npy', t)
-    np.save('data/ek-data-'+str(j)+'-'+str(tag)+'.npy', ek)
-    np.save('data/ee-data-'+str(j)+'-'+str(tag)+'.npy', ee)
+def save_energy_arrays(t, ek, ee, loop, subloop, tag):
+    np.save('data/time-data-'+str(loop)+'-'+str(subloop)+'-'+str(tag)+'.npy', t)
+    np.save('data/ek-data-'+str(loop)+'-'+str(subloop)+'-'+str(tag)+'.npy', ek)
+    np.save('data/ee-data-'+str(loop)+'-'+str(subloop)+'-'+str(tag)+'.npy', ee)
 
-def load_energy_arrays(j, tag):
-    t = np.load('data/time-data-'+str(j)+'-'+str(tag)+'.npy')
-    ek = np.load('data/ek-data-'+str(j)+'-'+str(tag)+'.npy')
-    ee = np.load('data/ee-data-'+str(j)+'-'+str(tag)+'.npy')
+def load_energy_arrays(loop, subloop, tag):
+    t = np.load('data/time-data-'+str(loop)+'-'+str(subloop)+'-'+str(tag)+'.npy')
+    ek = np.load('data/ek-data-'+str(loop)+'-'+str(subloop)+'-'+str(tag)+'.npy')
+    ee = np.load('data/ee-data-'+str(loop)+'-'+str(subloop)+'-'+str(tag)+'.npy')
     return t, ek, ee
 
-def save_data_array(nus, j, tag):
-    np.save('data/nus-data-'+str(j)+'-'+str(tag)+'.npy', nus)
+def save_data_array(nus, loop, subloop, tag):
+    np.save('data/nus-data-'+str(loop)+'-'+str(subloop)+'-'+str(tag)+'.npy', nus)
 
-def load_data_array(j, tag):
-    nus = np.load('data/nus-data-'+str(j)+'-'+str(tag)+'.npy')
+def load_data_array(loop, subloop, tag):
+    nus = np.load('data/nus-data-'+str(loop)+'-'+str(subloop)+'-'+str(tag)+'.npy')
     return nus
