@@ -19,7 +19,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     B, L = 1, 1 # Length
     U = 1
     Ra = 10000                           #Rayleigh Number
-    Pr = 1.0
+    Pr = 2.0
     We = 0.01                          #Weisenberg NUmber
     Vh = 0.005
     T_0 = 300

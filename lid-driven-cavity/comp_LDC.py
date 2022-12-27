@@ -40,7 +40,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     T_f = simulation_time
     Tf = T_f
 
-    dt = 0.001  #Time Stepping  
+    dt = 0.0005  #Time Stepping  
     Tf = T_f
 
     tol = 10E-6
@@ -171,7 +171,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
         # Define boundary/stabilisation FUNCTIONS
         # ramped thermal boundary condition
-        ramp_function = Expression('0.5*(1+tanh(8*(t-0.5)))*(T_h-T_0)+T_0', degree=2, t=0.0, T_0=T_0, T_h=T_h)
+        ramp_function = Expression('0.5*(1+tanh(4*(t-1.5)))*(T_h-T_0)+T_0', degree=2, t=0.0, T_0=T_0, T_h=T_h)
 
         # Define boundary/stabilisation FUNCTIONS
 
@@ -184,26 +184,12 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         n = FacetNormal(mesh)
 
 
-
-        # Dirichlet Boundary Conditions  (Bouyancy driven flow)
-        noslip0  = DirichletBC(W.sub(0), Constant((0.0, 0.0)), no_slip)  # No Slip boundary conditions on the left wall
-        noslip1 = DirichletBC(W.sub(0), Constant((0.0, 0.0)), left)  # No Slip boundary conditions on the left wall
-        noslip2 = DirichletBC(W.sub(0), Constant((0.0, 0.0)), right)  # No Slip boundary conditions on the left wall
-        noslip3 = DirichletBC(W.sub(0), Constant((0.0, 0.0)), top)  # No Slip boundary conditions on the left wall
-        temp_left =  DirichletBC(Q, T_h, left)    #Temperature on Omega0 
-        temp_right =  DirichletBC(Q, T_0, right)    #Temperature on Omega2 
-
         # Dirichlet Boundary Conditions  (LID DRIVEN CAVITY)
         noslip  = DirichletBC(W.sub(0), Constant((0.0, 0.0)), no_slip)  # No Slip boundary conditions on the left wall
         drive1  =  DirichletBC(W.sub(0), ulidreg, top)  # No Slip boundary conditions on the upper wall
-        #slip  = DirichletBC(V, sl, omega0)  # Slip boundary conditions on the second part of the flow wall 
-        #temp0 =  DirichletBC(Qt, T_0, omega0)    #Temperature on Omega0 
-        #temp2 =  DirichletBC(Qt, T_0, omega2)    #Temperature on Omega2 
-        #temp3 =  DirichletBC(Qt, T_0, omega3)    #Temperature on Omega3 
         #Collect Boundary Conditions
         bcu = [noslip, drive1]
         bcp = []
-        bcT = []    #temp0, temp2
         bctau = []
 
         # READ IN FLUID PARAMETERS FROM CSV ------------------------------------------------------------------------
@@ -221,28 +207,22 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
         betav = 0.5
         We = float(we_row[4])
+        Re = float(re_row[4])
 
         # Set parameters for primary loop ------------------------------------------------     
         if j==1:
-            Re = float(re_row[3])
             Ma = float(ma_row[1])
             label_1 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
         elif j==2:
-            Re = float(re_row[3])
             Ma = float(ma_row[2])
             label_2 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
         elif j==3:
-            Re = float(re_row[3])
             Ma = float(ma_row[3])
             label_3 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
         elif j==4:
-            Re = float(re_row[3])
             Ma = float(ma_row[4])
             label_4 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
 
-        # Continuation in Reynolds/Weissenberg Number Number (Re-->10Re)
-        Ret=Expression('Re*(1.0+0.5*(1.0+tanh(0.7*t-4.0))*19.0)', t=0.0, Re=Re, degree=2)
-        Wet=Expression('(0.1+(We-0.1)*0.5*(1.0+tanh(500*(t-2.5))))', t=0.0, We=We, degree=2)
 
 
         print('############# FLOW PARAMETERS ############')
@@ -382,8 +362,6 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             rampd.t=t
             ulid.t=t
             ulidreg.t=t
-            Ret.t=t
-            Wet.t=t
 
     
             # Update Stabilisation (Copy and Paste Stabilisation Technique from above)
@@ -622,14 +600,6 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             if error_rat.vector().get_local().max() > 0.01 and err_count < 1:
                 err_count+=1
                 mesh = adaptive_refinement(mesh, norm_kapp, ratio)
-                #mplot(error_rat)
-                #plt.colorbar()
-                #plt.savefig("adaptive-error-function.eps")
-                #plt.clf()
-                #mplot(mesh)
-                #plt.savefig("adaptive-mesh.eps")
-                #plt.clf()
-                #jj=0
                 conv_fail = 0
 
             # Reset Parameters
@@ -1063,4 +1033,4 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("flow-parameters.csv", mesh_resolution=30, simulation_time=15.0, mesh_refinement=False)
+    main("flow-parameters.csv", mesh_resolution=40, simulation_time=10.0, mesh_refinement=False)
