@@ -63,8 +63,6 @@ nus3 = -nus3
 
 x4, ek4, ee4 = load_energy_arrays(jjj, 4, data_tag)
 
-
-
 nus4 = load_data_array(jjj, 4, data_tag)
 nus4 = -nus4
 
