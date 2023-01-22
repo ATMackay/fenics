@@ -29,7 +29,7 @@ If packages have been installed correctly fenics_base.py should execute without 
 ### Extended White Metzner (EWM) flow simulation
 
 ```
-alex@alex-XPS-13-7390:~/python/fenics/flow between eccentrically rotating cylinders$ python3 comp_ewm_jpb.py
+flow between eccentrically rotating cylinders$ python3 comp_ewm_jpb.py
 ```
 
 Note: this program consumes parameters from `parameters-ewm.csv`. Output data are written to files stored in plots/ and results/.
@@ -37,7 +37,7 @@ Note: this program consumes parameters from `parameters-ewm.csv`. Output data ar
 ### FENEP-MP flow simulation
 
 ```
-alex@alex-XPS-13-7390:~/python/fenics/flow between eccentrically rotating cylinders$ python3 fenepmp_jbp.py
+flow between eccentrically rotating cylinders$ python3 fenepmp_jbp.py
 ```
 
 Note: this program consumes parameters from `parameters-fenep-mp.csv`. Output data are written to files stored in plots/ and results/.

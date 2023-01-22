@@ -40,7 +40,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     T_f = simulation_time
     Tf = T_f
 
-    dt = 0.0005  #Time Stepping  
+    dt = 0.001  #Time Stepping  
     Tf = T_f
 
     tol = 10E-6
@@ -1033,4 +1033,4 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("flow-parameters.csv", mesh_resolution=40, simulation_time=10.0, mesh_refinement=False)
+    main("flow-parameters.csv", mesh_resolution=40, simulation_time=20.0, mesh_refinement=False)

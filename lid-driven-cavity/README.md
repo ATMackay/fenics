@@ -20,26 +20,5 @@ Alternatively if using Mac or Windows OS see installation instructions here: htt
 ## Test Installation with fenics_fem.py
 
 ```
-alex@alex-XPS-13-7390:~/python/fenics/lid-driven-cavity$ python3 fenics_fem.py 
-alex@alex-XPS-13-7390:~/python/fenics/lid-driven-cavity$
+lid-driven-cavity$ python3 fenics_fem.py 
 ```
-
-If packages have been installed correctly dgp_base.py should execute without errors.
-
-## Flow between eccentrically rotating cylinders
-
-### Extended White Metzner (EWM) flow simulation TODO
-
-```
-alex@alex-XPS-13-7390:~/python/fenics/flow between eccentrically rotating cylinders$ ...
-```
-
-Note: this program consumes parameters from `parameters-ewm.csv`. Output data are written to files stored in plots/ and results/.
-
-### FENEP-MP flow simulation TODO
-
-```
-alex@alex-XPS-13-7390:~/python/fenics/flow between eccentrically rotating cylinders$ ...
-```
-
-Note: this program consumes parameters from `parameters-fenep-mp.csv`. Output data are written to files stored in plots/ and results/.
