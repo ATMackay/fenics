@@ -44,7 +44,7 @@ We = float(we_row[5])
 Ra = float(ra_row[5])
 label_6 = "Ra="+str(Ra)+",We="+str(We)
 
-start = time.perf_counter_ns()
+start = time.perf_counter()
 x1, ek1, ee1 = load_energy_arrays(jjj, 1, data_tag)
 
 nus1 = load_data_array(jjj, 1, data_tag)
@@ -113,104 +113,43 @@ plt.clf()
 
 
 # Kinetic and Elastic Energy
+i = 0
+while i < 6:
+    i += 1
+    if i == 1:
+        x, ek, ee, label = x1, ek1, ee1, label_1
+        color_str_ek, color_str_ee = 'r-', 'r--'
+    if i == 2:
+        x, ek, ee, label = x2, ek2, ee2, label_2
+        color_str_ek, color_str_ee = 'b-', 'b--'
+    if i == 3:
+        x, ek, ee, label = x3, ek3, ee3, label_3
+        color_str_ek, color_str_ee = 'c-', 'c--'
+    if i == 4:
+        x, ek, ee, label = x4, ek4, ee4, label_4
+        color_str_ek, color_str_ee = 'b-', 'b--'
+    if i == 5:
+        x, ek, ee, label = x5, ek5, ee5, label_5
+        color_str_ek, color_str_ee = 'c-', 'c--'
+    if i == 6:
+        x, ek, ee, label = x6, ek6, ee6, label_6
+        color_str_ek, color_str_ee = 'g-', 'g--'
+    
+    ek_max = max(ek)
+    ee_max = max(ee)
+    fig, ax1 = plt.subplots()
+    ax1.plot(x, ek, color_str_ek, label=r'%s' % label)
+    ax1.set_xlabel('$t$')
+    ax1.set_ylabel('$E_k$')
+    ax1.set_ylim([0, 3*ek_max])
+    ax2 = ax1.twinx() 
+    ax2.plot(x, ee, color_str_ee, label=r'%s' % label)
+    ax2.set_ylabel('$E_e$')
+    ax2.set_ylim([0, 1.2*ee_max])
 
-fig, ax1 = plt.subplots()
-ax1.plot(x1, ek1, 'r-', label=r'%s' % label_1)
-ax1.set_xlabel('$t$')
-ax1.set_ylabel('$E_k$')
-ax2 = ax1.twinx() 
-ax2.plot(x1, ee1, 'r--',label=r'%s' % label_1)
-ax2.set_ylabel('$E_e$')
-fig.tight_layout()  
-plt.legend(loc='best')
-fig.savefig("plots/incompressible-flow/KineticAndElasticEnergy"+str(label_1)+".png")
+    fig.tight_layout()  
+    plt.legend(loc='best')
+    fig.savefig("plots/incompressible-flow/KineticAndElasticEnergy"+str(label)+".png")
 
-plt.show()
-plt.clf()
-
-
-fig, ax1 = plt.subplots()
-ax1.plot(x2, ek2, 'b-', label=r'%s' % label_2)
-ax1.set_xlabel('$t$')
-ax1.set_ylabel('$E_k$')
-ax2 = ax1.twinx() 
-ax2.plot(x2, ee2, 'b--',label=r'%s' % label_2)
-ax2.set_ylabel('$E_e$')
-fig.tight_layout()  
-plt.legend(loc='best')
-fig.savefig("plots/incompressible-flow/KineticAndElasticEnergy"+str(label_2)+".png")
-
-plt.show()
-plt.clf()
-
-
-fig, ax1 = plt.subplots()
-ax1.plot(x3, ek3, 'c-', label=r'%s' % label_3)
-ax1.set_xlabel('$t$')
-ax1.set_ylabel('$E_k$')
-ax2 = ax1.twinx() 
-ax2.plot(x3, ee3, 'c--',label=r'%s' % label_3)
-ax2.set_ylabel('$E_e$')
-fig.tight_layout()  
-plt.legend(loc='best')
-fig.savefig("plots/incompressible-flow/KineticAndElasticEnergy"+str(label_3)+".png")
-
-plt.show()
-plt.clf()
-
-fig, ax1 = plt.subplots()
-ax1.plot(x4, ek4, 'm-', label=r'%s' % label_4)
-ax1.set_xlabel('$t$')
-ax1.set_ylabel('$E_k$')
-ax2 = ax1.twinx() 
-ax2.plot(x4, ee4, 'm--',label=r'%s' % label_4)
-ax2.set_ylabel('$E_e$')
-fig.tight_layout()  
-plt.legend(loc='best')
-fig.savefig("plots/incompressible-flow/KineticAndElasticEnergy"+str(label_4)+".png")
-
-plt.show()
-plt.clf()
-
-fig, ax1 = plt.subplots()
-ax1.plot(x5, ek5, 'b-', label=r'%s' % label_5)
-ax1.set_xlabel('$t$')
-ax1.set_ylabel('$E_k$')
-ax2 = ax1.twinx() 
-ax2.plot(x5, ee5, 'b--',label=r'%s' % label_5)
-ax2.set_ylabel('$E_e$')
-fig.tight_layout()  
-plt.legend(loc='best')
-fig.savefig("plots/incompressible-flow/KineticAndElasticEnergy"+str(label_5)+".png")
-
-plt.show()
-plt.clf()
-
-fig, ax1 = plt.subplots()
-ax1.plot(x6, ek6, 'g-', label=r'%s' % label_6)
-ax1.set_xlabel('$t$')
-ax1.set_ylabel('$E_k$')
-ax2 = ax1.twinx() 
-ax2.plot(x6, ee6, 'g--',label=r'%s' % label_6)
-ax2.set_ylabel('$E_e$')
-fig.tight_layout()  
-plt.legend(loc='best')
-fig.savefig("plots/incompressible-flow/KineticAndElasticEnergy"+str(label_6)+".png")
-
-plt.show()
-plt.clf()
-
-
-# Nusselt Number
-plt.figure(2)
-plt.plot(x1, nus1, 'r-', label=r'%s' % label_1)
-plt.plot(x2, nus2, 'b-', label=r'%s' % label_2)
-plt.plot(x3, nus3, 'c-', label=r'%s' % label_3)
-plt.plot(x4, nus4, 'm-', label=r'%s' % label_4)
-plt.plot(x5, nus5, 'r--', label=r'%s' % label_5)
-plt.plot(x6, nus6, 'b--', label=r'%s' % label_6)
-plt.legend(loc='best')
-plt.xlabel('$t$')
-plt.ylabel('$Nu$')
-plt.savefig("plots/incompressible-flow/NusseltnumberTf="+str(Tf)+"Ra="+str(Ra)+"b="+str(betav)+"mesh="+str(mm)+"dt="+str(dt)+".png")
-plt.clf()
+    #plt.show()
+    plt.clf()
