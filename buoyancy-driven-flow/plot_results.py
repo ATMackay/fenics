@@ -108,10 +108,52 @@ plt.legend(loc='best')
 plt.xlabel('$t$')
 plt.ylabel('$E_e$')
 plt.savefig("plots/incompressible-flow/ElasticEnergyTf="+str(Tf)+"Ra="+str(Ra)+"b="+str(betav)+"mesh="+str(mm)+"dt="+str(dt)+".png")
-plt.show()
+#plt.show()
 plt.clf()
 
 
+# Kinetic and Elastic Energy
+i = 0
+while i < 6:
+    i += 1
+    if i == 1:
+        x, ek, ee, label = x1, ek1, ee1, label_1
+        color_str_ek, color_str_ee = 'r-', 'r--'
+    if i == 2:
+        x, ek, ee, label = x2, ek2, ee2, label_2
+        color_str_ek, color_str_ee = 'b-', 'b--'
+    if i == 3:
+        x, ek, ee, label = x3, ek3, ee3, label_3
+        color_str_ek, color_str_ee = 'c-', 'c--'
+    if i == 4:
+        x, ek, ee, label = x4, ek4, ee4, label_4
+        color_str_ek, color_str_ee = 'b-', 'b--'
+    if i == 5:
+        x, ek, ee, label = x5, ek5, ee5, label_5
+        color_str_ek, color_str_ee = 'c-', 'c--'
+    if i == 6:
+        x, ek, ee, label = x6, ek6, ee6, label_6
+        color_str_ek, color_str_ee = 'g-', 'g--'
+    
+    ek_max = max(ek)
+    ee_max = max(ee)
+    limit = max([ek_max, ee_max])
+    plt.figure(i)
+    plt.plot(x, ek, color_str_ek, label='${E_k}$' )
+    plt.plot(x, ee, color_str_ee, label='${E_e}$' )
+    #plt.yscale("log")
+    #plt.ylim([1e-4, 1.2*limit])
+    plt.legend(loc='best', title=label)
+    plt.xlabel('$t$')
+    plt.ylabel('${E_k}$/${E_e}$')
+
+    plt.savefig("plots/incompressible-flow/KineticAndElasticEnergy"+str(label)+".png")
+
+    #plt.show()
+    plt.clf()
+
+
+"""
 # Kinetic and Elastic Energy
 i = 0
 while i < 6:
@@ -151,5 +193,6 @@ while i < 6:
     plt.legend(loc='best')
     fig.savefig("plots/incompressible-flow/KineticAndElasticEnergy"+str(label)+".png")
 
-    #plt.show()
+    plt.show()
     plt.clf()
+"""

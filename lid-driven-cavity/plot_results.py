@@ -23,16 +23,16 @@ Re = float(re_row[4])
  
 
 Ma = float(ma_row[1])
-label_1 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
+label_1 = "Ma = "+str(Ma) #"Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
 
 Ma = float(ma_row[2])
-label_2 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
+label_2 = "Ma = "+str(Ma) #"Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
 
 Ma = float(ma_row[3])
-label_3 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
+label_3 = "Ma = "+str(Ma) #"Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
 
 Ma = float(ma_row[4])
-label_4 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
+label_4 = "Ma = "+str(Ma) #"Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
 
 start = time.perf_counter_ns()
 x1, ek1, ee1 = load_energy_arrays(1, data_tag)
