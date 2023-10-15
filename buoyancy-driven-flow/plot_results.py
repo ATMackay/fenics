@@ -141,13 +141,13 @@ while i < 6:
     plt.figure(i)
     plt.plot(x, ek, color_str_ek, label='${E_k}$' )
     plt.plot(x, ee, color_str_ee, label='${E_e}$' )
-    #plt.yscale("log")
-    #plt.ylim([1e-4, 1.2*limit])
-    plt.legend(loc='best', title=label)
+    plt.yscale("log")
+    plt.ylim([1e-4, 1.2*limit])
+    plt.legend(loc='best') #title=label
     plt.xlabel('$t$')
     plt.ylabel('${E_k}$/${E_e}$')
 
-    plt.savefig("plots/incompressible-flow/KineticAndElasticEnergy"+str(label)+".png")
+    plt.savefig("plots/incompressible-flow/KineticAndElasticEnergy"+str(label)+"-log"+".png")
 
     #plt.show()
     plt.clf()

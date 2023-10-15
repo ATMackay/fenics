@@ -171,7 +171,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         # Define boundary/stabilisation FUNCTIONS
         # ramped thermal boundary condition
         #ramp_function = Expression('0.5*(1+tanh(8*(t-0.5)))*(T_h-T_0)+T_0', degree=2, t=0.0, T_0=T_0, T_h=T_h)
-        ramp_function = Expression('0.5*(1+tanh(4*(t-1.5)))*(T_h-T_0)+T_0', degree=3, t=0.0, T_0=T_0, T_h=T_h)
+        ramp_function = Expression('0.5*(1+tanh(4*(t-1.5)))*(T_h-T_0)+T_0', degree=2, t=0.0, T_0=T_0, T_h=T_h)
         # direction of gravitational force (0,-1)
         f = Expression(('0','-1'), degree=2)
         k = Expression(('0','1'), degree=2)
@@ -180,15 +180,6 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         # Mesh functions
         h = CellDiameter(mesh)
         n = FacetNormal(mesh)
-
-
-        # Define unit Normal/tangent Vector at inner and outer Boundary (Method 2)
-        n0 =  Expression(('-1' , '0'), degree=2)
-        n1 =  Expression(('0' , '1' ), degree=2)
-        n2 =  Expression(('1' , '0' ), degree=2)
-        n3 =  Expression(('0' , '-1'), degree=2)
-
-
 
         # Dirichlet Boundary Conditions  (Bouyancy driven flow)
         noslip0  = DirichletBC(W.sub(0), Constant((0.0, 0.0)), no_slip)  # No Slip boundary conditions on the left wall
@@ -219,8 +210,8 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
         # Set parameters for secondary loop -----------------------------------------------------------------------
 
-        betav = 0.5
-        Ra = float(ra_row[jjj+2])
+        betav = 0.1
+        Ra = float(ra_row[jjj+1])
         Ma = float(ma_row[2])
         We = float(we_row[j])
 
@@ -274,7 +265,15 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         phi0 = project((T0+C)/(T_0+C)*(T0/T_0)**(3/2),Q)
 
 
-        # Initial Conformation Tensor
+        # Initial Velocity Field
+        w_initial = Expression((('0.0','0.0','0.0', '0.0', '0.0')), degree=2)
+        w_initial_guess = project(w_initial, W)
+        w0.assign(w_initial_guess)
+        w12.assign(w_initial_guess)
+        ws.assign(w_initial_guess)
+        w1.assign(w_initial_guess)
+
+        # Initial Conformation Tensor guess
         I_vec = Expression(('1.0','0.0','1.0'), degree=2)
         initial_guess_conform = project(I_vec, Zc)
         assign(tau0_vec, initial_guess_conform)         # Initial guess for conformation tensor is Identity matrix
@@ -362,7 +361,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 
         # Time-stepping
-        t = 0.0        
+        t = dt     
         start, elapsed, total_elapsed = 0.0, 0.0, 0.0
         iter = 0            # iteration counter
         while t < Tf + DOLFIN_EPS:
