@@ -26,7 +26,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     T_h = 350
     Bi = 0.0+DOLFIN_EPS
     Di = 0.005                         #Diffusion Number
-    al = 2.0
+    al = 1.0
 
     c1 = 0.05
     c2 = 0.001
@@ -35,7 +35,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 
     # SET LOOPING PARAMETER
-    loopend = 3
+    loopend = 4
     j = 0                            
     err_count = 0
     jjj = 0
@@ -55,9 +55,11 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             mesh_resolution = 60
             label_2 = "M2"#mesh="+str(mesh_resolution)
         elif j==3:
-            mesh_resolution = 80  # <--- 65
+            mesh_resolution = 65  # <--- 65
             label_3 = "M3"#mesh="+str(mesh_resolution)
-
+        elif j==4:
+            mesh_resolution = 70  # <--- 65
+            label_4 = "M4"#mesh="+str(mesh_resolutio
         mesh = DGP_Mesh(mesh_resolution, B, L)
 
         mplot(mesh)
@@ -227,6 +229,9 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         Ra = float(ra_row[2]) 
         
 
+        h_min = mesh.hmin()
+        dt = h_min**2
+        dt = float(np.format_float_positional(dt, precision=1, unique=False, fractional=False, trim='k'))
 
         print('############# TIME SCALE ############')
         print('Timestep size (s):', dt)
@@ -243,7 +248,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         print('Viscous Heating Number:', Vh)
 
         Np= len(p0.vector().get_local())
-        (u0, D0) = w0.split() 
+        (u0, _) = w0.split() 
         Nv= len(u0.vector().get_local())  
         Ntau= len(tau0_vec.vector().get_local())
         dof= 3*Nv+2*Ntau+Np
@@ -610,8 +615,8 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 nus2 = load_data_array(jjj, 2, data_tag)
                 x3, ek3, ee3 = load_energy_arrays(jjj, 3, data_tag)
                 nus3 = load_data_array(jjj, 3, data_tag)
-                #x4, ek4, ee4 = load_energy_arrays(jjj, 4, data_tag)
-                #nus4 = load_data_array(jjj, 4, data_tag)
+                x4, ek4, ee4 = load_energy_arrays(jjj, 4, data_tag)
+                nus4 = load_data_array(jjj, 4, data_tag)
                 #x5, ek5, ee5 = load_energy_arrays(jjj, 5, data_tag)
                 #nus5 = load_data_array(jjj, 5, data_tag)
                 #x6, ek6, ee6 = load_energy_arrays(jjj, 6, data_tag)
@@ -621,7 +626,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.plot(x1, ek1, 'r-', label=r'%s' % label_1)
                 plt.plot(x2, ek2, 'b--', label=r'%s' % label_2)
                 plt.plot(x3, ek3, 'c-', label=r'%s' % label_3)
-                #plt.plot(x4, ek4, 'm-', label=r'%s' % label_4)
+                plt.plot(x4, ek4, 'm-', label=r'%s' % label_4)
                 #plt.plot(x5, ek5, 'r--', label=r'%s' % label_5)
                 #plt.plot(x6, ek6, 'b--', label=r'%s' % label_6)
                 plt.legend(loc='best')
@@ -634,7 +639,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.plot(x1, ee1, 'r-', label=r'%s' % label_1)
                 plt.plot(x2, ee2, 'b--', label=r'%s' % label_2)
                 plt.plot(x3, ee3, 'c-', label=r'%s' % label_3)
-                #plt.plot(x4, ee4, 'm-', label=r'%s' % label_4)
+                plt.plot(x4, ee4, 'm-', label=r'%s' % label_4)
                 #plt.plot(x5, ee5, 'r--', label=r'%s' % label_5)
                 #plt.plot(x6, ee6, 'b--', label=r'%s' % label_6)
                 plt.legend(loc='best')
@@ -647,13 +652,13 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.plot(x1, ek1, 'r-', label=r'%s' % label_1)
                 plt.plot(x2, ek2, 'b--', label=r'%s' % label_2)
                 plt.plot(x3, ek3, 'c-', label=r'%s' % label_3)
-                #plt.plot(x4, ek4, 'm-', label=r'%s' % label_4)
+                plt.plot(x4, ek4, 'm-', label=r'%s' % label_4)
                 #plt.plot(x5, ek5, 'r--', label=r'%s' % label_5)
                 #plt.plot(x6, ek6, 'b--', label=r'%s' % label_6)
                 plt.plot(x1, ee1, 'r-', label=r'%s' % label_1)
                 plt.plot(x2, ee2, 'b--', label=r'%s' % label_2)
                 plt.plot(x3, ee3, 'c-', label=r'%s' % label_3)
-                #plt.plot(x4, ee4, 'm-', label=r'%s' % label_4)
+                plt.plot(x4, ee4, 'm-', label=r'%s' % label_4)
                 #plt.plot(x5, ee5, 'r--', label=r'%s' % label_5)
                 #plt.plot(x6, ee6, 'b--', label=r'%s' % label_6)
                 plt.legend(loc='best')
@@ -666,7 +671,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.plot(x1, nus1, 'r-', label=r'%s' % label_1)
                 plt.plot(x2, nus2, 'b--', label=r'%s' % label_2)
                 plt.plot(x3, nus3, 'c-', label=r'%s' % label_3)
-                #plt.plot(x4, nus4, 'm-', label=r'%s' % label_4)
+                plt.plot(x4, nus4, 'm-', label=r'%s' % label_4)
                 #plt.plot(x5, nus5, 'r--', label=r'%s' % label_5)
                 #plt.plot(x6, nus6, 'b--', label=r'%s' % label_6)
                 plt.legend(loc='best')
@@ -875,4 +880,4 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("flow-parameters.csv", mesh_resolution=50, simulation_time=0.01, mesh_refinement=False)
+    main("flow-parameters.csv", mesh_resolution=50, simulation_time=10, mesh_refinement=False)

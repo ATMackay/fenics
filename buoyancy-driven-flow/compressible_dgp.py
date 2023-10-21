@@ -242,6 +242,8 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         print('Viscosity Ratio:', betav)
         print('Diffusion Number:' , Di)
         print('Viscous Heating Number:', Vh)
+        print('thermal expansion coefficient 1:' , al_1)
+        print('thermal expansion coefficient 2:' , al_2)
 
         Np= len(p0.vector().get_local())
         Nv= len(w0.vector().get_local())   
@@ -260,7 +262,6 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         print('############# Stabilisation Parameters ############')
         print('DEVSS Parameter:', th)
 
-        #quit()
 
         phi0 = project((T0+C)/(T_0+C)*(T0/T_0)**(3/2),Q)
 
@@ -402,8 +403,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             # Use previous solutions to update nonisthermal paramters
             phi0 = project((T0+C)/(T_0+C)*(T0/T_0)**(3/2),Q)   
             theta0 = project((T0-T_0)/(T_h-T_0), Q) 
-            al_1 = (beta_1 + beta_2 * T_0)/beta_0
-            al_2 = beta_2*(T_h-T_0)/beta_0          
+         
             therm = (al_1+al_2*theta0)
             therm_inv = project(1.0/therm, Q)
 

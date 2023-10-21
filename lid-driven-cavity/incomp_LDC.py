@@ -42,7 +42,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     T_f = simulation_time
     Tf = T_f
 
-    dt = 0.001  #Time Stepping  
+    dt = 0.0005  #Time Stepping  
     Tf = T_f
 
     B, L = 1, 1            # Length
@@ -87,7 +87,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         # Set parameters for secondary loop -----------------------------------------------------------------------
 
         betav = 0.5
-        We = 0.5 #float(we_row[j])
+        We = 0.25 #float(we_row[j])
         Re = 0.5 #float(re_row[2])
 
         if Re < 1:
@@ -95,8 +95,8 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
         # Set parameters for primary loop ------------------------------------------------     
         #if j==1:
-        #    c1, c2 = DOLFIN_EPS, DOLFIN_EPS 
-        #    label_1 = "$c_1$= "+str(0)+", $c_2$= "+str(0)
+        #    c1, c2 = 1e-3, 1e-3 
+        #    label_1 = "$c_1$= "+str(c1)+", $c_2$= "+str(c2)
         #elif j==2:
         #    c1, c2 = 0.05, 0.01 
         #    label_2 = "$c_1$= "+str(c1)+", $c_2$= "+str(c2)
@@ -114,15 +114,15 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         # DEFINE THE COMPUTATION GRID
         # Choose Mesh to Use
 
-        ## Compare mesh resolution and timestep
+        # Compare mesh resolution and timestep
         if j==1:
-            mesh_resolution = 30
+            mesh_resolution = 40
             label_1 = "M1"#mesh="+str(mesh_resolution)
         elif j==2:
-            mesh_resolution = 40
+            mesh_resolution = 60
             label_2 = "M2"#mesh="+str(mesh_resolution)
         elif j==3:
-            mesh_resolution = 45  # <--- 65
+            mesh_resolution = 80 
             label_3 = "M3"#mesh="+str(mesh_resolution)
         
         if jjj==1:
@@ -132,7 +132,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         elif jjj==3:
             dt = 0.0005
 
-        mesh = LDC_Regular_Mesh(mesh_resolution, B, L)
+        mesh = Skew_Mesh(mesh_resolution, B, L)
         mesh = refine_top(0, 0, B, L, mesh, 1, 0.025)
 
         mplot(mesh)
@@ -434,10 +434,11 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             err = project(h*kapp,Qt)
             err_array.append(norm(err.vector(),'l2'))
 
-            # Convergence criteria
-            #if t > 2:
-            #    if abs(ek_array[-1] - ek_array[-2]) < 1e-8:
-            #        break
+            # Divergence criteria
+            if t > 0.5:
+                # error norm doubling within one iteration indicates divergence
+                if err_array[-1]/err_array[-2] > 1.1:
+                    break
 
             # Move to next time step
             w0.assign(w1)
@@ -490,10 +491,11 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             x1, ek1, ee1 = load_energy_arrays(1, data_tag)
             x2, ek2, ee2 = load_energy_arrays(2, data_tag)
             x3, ek3, ee3 = load_energy_arrays(3, data_tag)
-            err1 = load_err_array(1, data_tag)
-            err2 = load_err_array(1, data_tag)
-            err3 = load_err_array(1, data_tag)
             #x4, ek4, ee4 = load_energy_arrays(4, data_tag)
+            err1 = load_err_array(1, data_tag)
+            err2 = load_err_array(2, data_tag)
+            err3 = load_err_array(3, data_tag)
+            #err3 = load_err_array(4, data_tag)
             # Kinetic Energy
             plt.figure(0)
             plt.plot(x1, ek1, 'r-', label=r'%s' % label_1)
@@ -503,7 +505,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             plt.legend(loc='best')
             plt.xlabel('$t$')
             plt.ylabel('$E_k$')
-            plt.savefig("plots/incompressible/energy/KineticEnergyRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"dt="+str(dt)+"t="+str(t)+".png")
+            plt.savefig("plots/incompressible/energy/KineticEnergyRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"dt="+str(dt)+"t="+str(t)+"c1"+str(c1)+"c2"+str(c2)+".png")
             plt.clf()
             # Elastic Energy
             plt.figure(1)
@@ -514,7 +516,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             plt.legend(loc='best')
             plt.xlabel('$t$')
             plt.ylabel('$E_e$')
-            plt.savefig("plots/incompressible/energy/ElasticEnergyRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"dt="+str(dt)+"t="+str(t)+".png")
+            plt.savefig("plots/incompressible/energy/ElasticEnergyRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"dt="+str(dt)+"t="+str(t)+"c1"+str(c1)+"c2"+str(c2)+".png")
             plt.clf()
             plt.close()
             x_axis1 = list(chunks(x_axis, mm))
@@ -531,7 +533,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             plt.legend(loc='best')
             plt.xlabel('x')
             plt.ylabel('$u_y(x,0.75)$')
-            plt.savefig("plots/incompressible/cross-section/u_yRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"dt="+str(dt)+".png")
+            plt.savefig("plots/incompressible/cross-section/u_yRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"dt="+str(dt)+"c1"+str(c1)+"c2"+str(c2)+".png")
             plt.clf()
             plt.figure(3)
             plt.plot(u_x1[0], y_axis1[0], 'r-', label=r'%s' % label_1)
@@ -541,7 +543,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             plt.legend(loc='best')
             plt.xlabel('$u_x(0.5,y)$')
             plt.ylabel('y')
-            plt.savefig("plots/incompressible/cross-section/u_xRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"dt="+str(dt)+".png")
+            plt.savefig("plots/incompressible/cross-section/u_xRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"dt="+str(dt)+"c1"+str(c1)+"c2"+str(c2)+".png")
             plt.clf()
             plt.figure(4)
             plt.plot(x_axis1[0], tau_xx1[0], 'r-', label=r'%s' % label_1)
@@ -692,8 +694,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             jjj+=1
             update_progress(flow_description+str(jjj), 1)
             j = 0
-            mesh_refinement = False
 
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("flow-parameters.csv", mesh_resolution=40, simulation_time=8, mesh_refinement=False)
+    main("flow-parameters.csv", mesh_resolution=40, simulation_time=2.0, mesh_refinement=False)
