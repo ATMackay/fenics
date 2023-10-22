@@ -21,7 +21,7 @@ pi=3.14159265359
 
 # Progress Bar
 def update_progress(job_title, progress):
-    length = 25 # modify this to change the length
+    length = 20 # modify this to change the length
     block = int(round(length*progress))
     msg = "\r{0}: [{1}] {2}%".format(job_title, "#"*block + "-"*(length-block), round(progress*100, 4))
     if progress >= 1: msg += " DONE\r\n"
@@ -82,10 +82,9 @@ def LDC_Regular_Mesh(mm, B, L):
     # Mesh refinement comparison Loop
     nx=mm*B
     ny=mm*L
-
-    #c = min(x1-x0,y1-y0)
-    base_mesh= RectangleMesh(Point(x0,y0), Point(x1, y1), nx, ny) # Rectangular Mesh
-
+    #base_mesh= RectangleMesh(Point(x0,y0), Point(x1, y1), nx, ny) # Rectangular Mesh
+    domain = Rectangle(Point(x0,y0), Point(x1, y1))
+    base_mesh= generate_mesh(domain, mm)
     return base_mesh
 
 
@@ -464,6 +463,13 @@ def load_energy_arrays(j, tag):
     ek = np.load('data/ek-data-'+str(j)+'-'+str(tag)+'.npy')
     ee = np.load('data/ee-data-'+str(j)+'-'+str(tag)+'.npy')
     return t, ek, ee
+
+def save_err_array(err, j, tag):
+    np.save('data/err-data-'+str(j)+'-'+str(tag)+'.npy', err)
+
+def load_err_array(j, tag):
+    err = np.load('data/err-data-'+str(j)+'-'+str(tag)+'.npy')
+    return err
 
 #def load_energy_arrays_archive(j):
 #    t = np.load('data/time-data-'+str(j)+'.npy')

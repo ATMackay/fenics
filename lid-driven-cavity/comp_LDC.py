@@ -60,14 +60,14 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     Ma = U/c0 
     rho_0 = 1.0
 
-    alph1 = 0.0
+
     c1 = 0.1
     c2 = 0.01
-    c3 = 0.1
+
     th = 1.0               # DEVSS
 
     # SET LOOPING PARAMETER
-    loopend=4
+    loopend=3
     j = 0
     err_count = 0
     jjj = 0
@@ -81,15 +81,65 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     u_xg = list()
     u_yg = list()
     tau_xxg = list()
-    tau_xyg = list()
     tau_yyg = list()
-    #Start Solution Loop
+    # Start Solution Loop
     while j < loopend:
         j+=1
         t = 0.0
+        # READ IN FLUID PARAMETERS FROM CSV ------------------------------------------------------------------------
+
+        # Import csv using csv
+        with open(input_csv, 'r') as csvfile:
+            spamreader = csv.reader(csvfile)
+            my_csv_data = list(spamreader)
+            re_row = my_csv_data[0]
+            we_row = my_csv_data[1]
+            ma_row = my_csv_data[2]
+
+
+        # Set parameters for secondary loop -----------------------------------------------------------------------
+
+        betav = 0.5
+        We = float(we_row[3])
+        Re = 1.0 #float(re_row[3])
+
+        if Re < 1:
+            conv = 0.0
+
+        # Set parameters for primary loop ------------------------------------------------     
+        #if j==1:
+        #    Ma = float(ma_row[1])
+        #    label_1 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
+        #elif j==2:
+        #    Ma = float(ma_row[2])
+        #    label_2 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
+        #elif j==3:
+        #    Ma = float(ma_row[3])
+        #    label_3 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
+        #elif j==4:
+        #    Ma = float(ma_row[4])
+        #    label_4 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
 
         # DEFINE THE COMPUTATION GRID
         # Choose Mesh to Use
+
+        ## Compare mesh resolution and timestep
+        if j==1:
+            mesh_resolution = 30
+            label_1 = "M1"#mesh="+str(mesh_resolution)
+        elif j==2:
+            mesh_resolution = 40
+            label_2 = "M2"#mesh="+str(mesh_resolution)
+        elif j==3:
+            mesh_resolution = 45  # <--- 65
+            label_3 = "M3"#mesh="+str(mesh_resolution)
+        
+        if jjj==1:
+            dt = 0.005
+        elif jjj==2:
+            dt = 0.001
+        elif jjj==3:
+            dt = 0.0005
 
         mesh = Skew_Mesh(mesh_resolution, B, L)
         mesh = refine_top(0, 0, B, L, mesh, 1, 0.025)
@@ -192,36 +242,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         bcp = []
         bctau = []
 
-        # READ IN FLUID PARAMETERS FROM CSV ------------------------------------------------------------------------
 
-        # Import csv using csv
-        with open(input_csv, 'r') as csvfile:
-            spamreader = csv.reader(csvfile)
-            my_csv_data = list(spamreader)
-            re_row = my_csv_data[0]
-            we_row = my_csv_data[1]
-            ma_row = my_csv_data[2]
-
-
-        # Set parameters for secondary loop -----------------------------------------------------------------------
-
-        betav = 0.5
-        We = float(we_row[4])
-        Re = float(re_row[4])
-
-        # Set parameters for primary loop ------------------------------------------------     
-        if j==1:
-            Ma = float(ma_row[1])
-            label_1 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
-        elif j==2:
-            Ma = float(ma_row[2])
-            label_2 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
-        elif j==3:
-            Ma = float(ma_row[3])
-            label_3 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
-        elif j==4:
-            Ma = float(ma_row[4])
-            label_4 = "Re= "+str(Re)+", We = "+str(We)+", Ma = "+str(Ma) 
 
 
 
@@ -257,7 +278,6 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         print('############# Stabilisation Parameters ############')
         print('DEVSS Parameter:', th)
 
-        #quit()
 
         # Initial Density Field
         rho_initial_guess = project(1.0, Q)
@@ -274,15 +294,8 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 
         #Define Variable Parameters, Strain Rate and other tensors
-        gamdots = inner(Dincomp(u1),grad(u1))
-        gamdots12 = inner(Dincomp(u12),grad(u12))
-        gamdotp = inner(tau1,grad(u1))
-        gamdotp12 = inner(tau12,grad(u12))
-        thetal = (T)/(T_h-T_0)
         thetar = (T_0)/(T_h-T_0)
         thetar = project(thetar,Qt)
-        theta0 = (T0-T_0)/(T_h-T_0)
-        #alpha = 1.0/(rho*Cv)
 
 
         # Stabilisation
@@ -353,7 +366,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             start = time.process_time()
             time_left = (Tf-t)/dt * (elapsed) 
 
-            flow_description = "compressible lid-driven cavity flow: loop: " +str(jjj) + ":"+str(j) + ", Re: "+str(Re)+", We: "+str(We)+", Ma: "+str(Ma)+", betav: "+str(betav)
+            flow_description = "compressible lid-driven cavity flow: loop: " +str(jjj) + ":"+str(j) + ", Re: "+str(Re)+", We: "+str(We)+", Ma: "+str(Ma)+", beta: "+str(betav)
             flow_description += ", time taken: " + str(datetime.timedelta(seconds= total_elapsed))
             flow_description += ", (est) time to completion: " + str(datetime.timedelta(seconds= time_left))
             update_progress(flow_description, t/Tf) # Update progress bar
@@ -402,7 +415,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
             
             # compute u^{n+1/2} velocity half-step
-            lhsFu12 = Re*rho0*(2.0*(u - u0) / dt + conv*dot(u0, nabla_grad(u0)))
+            lhsFu12 = Re*rho0*(2.0*(u - u0) / dt + Re*conv*dot(u0, nabla_grad(u0)))
             Fu12 = dot(lhsFu12, v)*dx + \
                 + inner(sigma(U, p0, tau0, We, betav), Dincomp(v))*dx \
                 + dot(p0*n, v)*ds - dot(betav*nabla_grad(U)*n, v)*ds - (1.0/3)*betav*dot(div(U)*n,v)*ds \
@@ -452,7 +465,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             #end()
             
             # Compute u* 
-            lhsFus = Re*rho0*((u - u0)/dt + conv*dot(u12, nabla_grad(u12)))
+            lhsFus = Re*rho0*((u - u0)/dt + Re*conv*dot(u12, nabla_grad(u12)))
             Fus = dot(lhsFus, v)*dx + \
                 + inner(sigma(U, p0, tau0, We, betav), Dincomp(v))*dx \
                 + 0.5*dot(p0*n, v)*ds - dot(betav*nabla_grad(U)*n, v)*ds - (1.0/3)*betav*dot(div(U)*n,v)*ds \
@@ -563,7 +576,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             E_e=assemble((tau1_vec[0]+tau1_vec[2])*dx)
 
 
-            # Record Elastic & Kinetic Energy Values (Method 1)
+            # record elastic & kinetic Energy values
             t_array.append(t)
             ek_array.append(E_k)
             ee_array.append(E_e)
@@ -651,86 +664,33 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 u_yg.append(u_y([0.5*(1.0-cos(i*pi/mm)),0.75])) 
                 tau_xxg.append(tau_xx([0.5*(1.0-cos(i*pi/mm)), 1.0])) 
                 tau_yyg.append(tau_xx([0.5*(1.0-cos(i*pi/mm)), 1.0]))  
-            """if j==3:
-                # First Normal Stress
-                x_axis1 = list(chunks(x_axis, mm))
-                y_axis1 = list(chunks(y_axis, mm))
-                u_x1 = list(chunks(u_xg, mm))
-                u_y1 = list(chunks(u_yg, mm))
-                tau_xx1 = list(chunks(tau_xxg, mm))
-                tau_yy1 = list(chunks(tau_yyg, mm))
-                plt.figure(0)
-                plt.plot(x_axis1[0], u_y1[0], 'r-', label=r'$We=0.1$')
-                plt.plot(x_axis1[1], u_y1[1], 'b-', label=r'$We=0.2$')
-                plt.plot(x_axis1[2], u_y1[2], 'c-', label=r'$We=0.3$')
-                plt.plot(x_axis1[3], u_y1[3], 'm-', label=r'$We=0.4$')
-                plt.plot(x_axis1[4], u_y1[4], 'g-', label=r'$We=0.5$')
-                plt.legend(loc='best')
-                plt.xlabel('x')
-                plt.ylabel('$u_y(x,0.75)$')
-                plt.savefig("Compressible Viscoelastic Flow Results/Cross Section/u_yRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-                plt.clf()
-                plt.figure(1)
-                plt.plot(u_x1[0], y_axis1[0], 'r-', label=r'$We=0.1$')
-                plt.plot(u_x1[1], y_axis1[1], 'b-', label=r'$We=0.2$')
-                plt.plot(u_x1[2], y_axis1[2], 'c-', label=r'$We=0.3$')
-                plt.plot(u_x1[3], y_axis1[3], 'm-', label=r'$We=0.4$')
-                plt.plot(u_x1[4], y_axis1[4], 'g-', label=r'$We=0.5$')
-                plt.legend(loc='best')
-                plt.xlabel('$u_x(0.5,y)$')
-                plt.ylabel('y')
-                plt.savefig("plots/cross-section/u_xRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-                plt.clf()
-                plt.figure(2)
-                plt.plot(x_axis1[0], tau_xx1[0], 'r-', label=r'$We=0.1$')
-                plt.plot(x_axis1[1], tau_xx1[1], 'b-', label=r'$We=0.2$')
-                plt.plot(x_axis1[2], tau_xx1[2], 'c-', label=r'$We=0.3$')
-                plt.plot(x_axis1[3], tau_xx1[3], 'm-', label=r'$We=0.4$')
-                plt.plot(x_axis1[4], tau_xx1[4], 'g-', label=r'$We=0.5$')
-                plt.legend(loc='best')
-                plt.xlabel('x')
-                plt.ylabel('$\tau_{xx}(x,1.0)$')
-                plt.savefig("plots/cross-section/tau_xxRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-                plt.clf()
-                plt.figure(3)
-                plt.plot(x_axis1[0], tau_yy1[0], 'r-', label=r'$We=0.1$')
-                plt.plot(x_axis1[1], tau_yy1[1], 'b-', label=r'$We=0.2$')
-                plt.plot(x_axis1[2], tau_yy1[2], 'c-', label=r'$We=0.3$')
-                plt.plot(x_axis1[3], tau_yy1[3], 'm-', label=r'$We=0.4$')
-                plt.plot(x_axis1[4], tau_yy1[4], 'g-', label=r'$We=0.5$')
-                plt.legend(loc='best')
-                plt.xlabel('x')
-                plt.ylabel('$\tau_{yy}(x,1.0)$')
-                plt.savefig("plots/cross-section/tau_yyRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-                plt.clf()
-                plt.close()"""
             if j==loopend:
                 # First Normal Stress
                 x1, ek1, ee1 = load_energy_arrays(1, data_tag)
                 x2, ek2, ee2 = load_energy_arrays(2, data_tag)
                 x3, ek3, ee3 = load_energy_arrays(3, data_tag)
-                x4, ek4, ee4 = load_energy_arrays(4, data_tag)
+                #x4, ek4, ee4 = load_energy_arrays(4, data_tag)
                 # Kinetic Energy
                 plt.figure(0)
                 plt.plot(x1, ek1, 'r-', label=r'%s' % label_1)
                 plt.plot(x2, ek2, 'b--', label=r'%s' % label_2)
                 plt.plot(x3, ek3, 'c-', label=r'%s' % label_3)
-                plt.plot(x4, ek4, 'g-', label=r'%s' % label_4)
+                #plt.plot(x4, ek4, 'g-', label=r'%s' % label_4)
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
                 plt.ylabel('$E_k$')
-                plt.savefig("plots/energy/MaKineticEnergyRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+"t="+str(t)+".png")
+                plt.savefig("plots/compressible/energy/MaKineticEnergyRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+"t="+str(t)+".png")
                 plt.clf()
                 # Elastic Energy
                 plt.figure(1)
                 plt.plot(x1, ee1, 'r-', label=r'%s' % label_1)
                 plt.plot(x2, ee2, 'b--', label=r'%s' % label_2)
                 plt.plot(x3, ee3, 'c-', label=r'%s' % label_3)
-                plt.plot(x4, ee4, 'g-', label=r'%s' % label_4)
+                #plt.plot(x4, ee4, 'g-', label=r'%s' % label_4)
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
                 plt.ylabel('$E_e$')
-                plt.savefig("plots/energy/MaElasticEnergyRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+"t="+str(t)+".png")
+                plt.savefig("plots/compressible/energy/MaElasticEnergyRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+"t="+str(t)+".png")
                 plt.clf()
                 plt.close()
                 x_axis1 = list(chunks(x_axis, mm))
@@ -743,171 +703,77 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 plt.plot(x_axis1[0], u_y1[0], 'r-', label=r'%s' % label_1)
                 plt.plot(x_axis1[1], u_y1[1], 'b--', label=r'%s' % label_2)
                 plt.plot(x_axis1[2], u_y1[2], 'c-', label=r'%s' % label_3)
-                plt.plot(x_axis1[3], u_y1[3], 'g--', label=r'%s' % label_4)
+                #plt.plot(x_axis1[3], u_y1[3], 'g--', label=r'%s' % label_4)
                 plt.legend(loc='best')
                 plt.xlabel('x')
                 plt.ylabel('$u_y(x,0.75)$')
-                plt.savefig("plots/cross-section/u_yRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+                plt.savefig("plots/compressible/cross-section/u_yRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
                 plt.clf()
                 plt.figure(3)
                 plt.plot(u_x1[0], y_axis1[0], 'r-', label=r'%s' % label_1)
                 plt.plot(u_x1[1], y_axis1[1], 'b--', label=r'%s' % label_2)
                 plt.plot(u_x1[2], y_axis1[2], 'c-', label=r'%s' % label_3)
-                plt.plot(u_x1[3], y_axis1[3], 'g--', label=r'%s' % label_4)
+                #plt.plot(u_x1[3], y_axis1[3], 'g--', label=r'%s' % label_4)
                 plt.legend(loc='best')
                 plt.xlabel('$u_x(0.5,y)$')
                 plt.ylabel('y')
-                plt.savefig("plots/cross-section/u_xRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+                plt.savefig("plots/compressible/cross-section/u_xRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
                 plt.clf()
                 plt.figure(4)
                 plt.plot(x_axis1[0], tau_xx1[0], 'r-', label=r'%s' % label_1)
                 plt.plot(x_axis1[1], tau_xx1[1], 'b--', label=r'%s' % label_2)
                 plt.plot(x_axis1[2], tau_xx1[2], 'c-', label=r'%s' % label_3)
-                plt.plot(x_axis1[3], tau_xx1[3], 'g--', label=r'%s' % label_4)
+                #plt.plot(x_axis1[3], tau_xx1[3], 'g--', label=r'%s' % label_4)
                 plt.legend(loc='best')
                 plt.xlabel('x')
                 plt.ylabel('$\tau_{xx}(x,1.0)$')
-                plt.savefig("plots/cross-section/tau_xxRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+                plt.savefig("plots/compressible/cross-section/tau_xxRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
                 plt.clf()
                 plt.figure(3)
                 plt.plot(x_axis1[0], tau_yy1[0], 'r-', label=r'%s' % label_1)
                 plt.plot(x_axis1[1], tau_yy1[1], 'b--', label=r'%s' % label_2)
                 plt.plot(x_axis1[2], tau_yy1[2], 'c-', label=r'%s' % label_3)
-                plt.plot(x_axis1[3], tau_yy1[3], 'g--', label=r'%s' % label_4)
+                #plt.plot(x_axis1[3], tau_yy1[3], 'g--', label=r'%s' % label_4)
                 plt.legend(loc='best')
                 plt.xlabel('x')
                 plt.ylabel('$\tau_{yy}(x,1.0)$')
-                plt.savefig("plots/cross-section/tau_yyRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
+                plt.savefig("plots/compressible/cross-section/tau_yyRe="+str(Re*conv)+"x="+str(0.5)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
                 plt.clf()
                 plt.close()
-
-            # Plot Convergence Data 
-            """if max(norm(tau1.vector(),'linf'),norm(p1.vector(), 'linf'),norm(w1.vector(), 'linf')) < 10E6 or jj>0:
-                fig1=plt.figure()
-                plt.plot(x, z, 'r-', label='Stress Timestep Error')
-                plt.xlabel('time(s)')
-                plt.ylabel('||S1-S0||/||S1||')
-                plt.savefig("plots/stability-convergence/StressCovergenceRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"al="+str(al)+"dt="+str(dt)+".png")
-                plt.clf()"""
-
-
-                #Plot Kinetic and elasic Energies for different REYNOLDS numbers at constant Weissenberg Number    
-            """if max(norm(tau1_vec.vector(),'linf'),norm(p1.vector(), 'linf'),norm(w1.vector(), 'linf')) < 10E6 and j==1 or j==5:
-                # Kinetic Energy
-                plt.figure(0)
-                plt.plot(x1, ek1, 'r-', label=r'$Re=0$')
-                plt.plot(x2, ek2, 'b-', label=r'$Re=5$')
-                plt.plot(x3, ek3, 'c-', label=r'$Re=10$')
-                plt.plot(x4, ek4, 'm-', label=r'$Re=25$')
-                plt.plot(x5, ek5, 'g-', label=r'$Re=10$')
-                plt.legend(loc='best')
-                plt.xlabel('time(s)')
-                plt.ylabel('E_k')
-                plt.savefig("plots/energy/We0p5KineticEnergyRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-                plt.clf()
-                # Elastic Energy
-                plt.figure(1)
-                plt.plot(x1, ee1, 'r-', label=r'$Re=0$')
-                plt.plot(x2, ee2, 'b-', label=r'$Re=5$')
-                plt.plot(x3, ee3, 'c-', label=r'$Re=10$')
-                plt.plot(x4, ee4, 'm-', label=r'$Re=25$')
-                plt.plot(x5, ee5, 'g-', label=r'$Re=10$')
-                plt.legend(loc='best')
-                plt.xlabel('time(s)')
-                plt.ylabel('E_e')
-                plt.savefig("plots/energy/We0p5ElasticEnergyRe="+str(Ree*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-                plt.clf()"""
-
-                #Plot Kinetic and elasic Energies for different Speed of sound numbers at constant Weissenberg & Reynolds Numbers    
-
-                #Plot Kinetic and elasic Energies for different Weissenberg numbers at Re=0 (METHOD 1)  
-            """
-                if j==1:
-                col='r-'
-                if j==2:
-                col='b-'
-                if j==3:
-                col='c-'
-                if j==4:
-                col='m-'
-                if j==5:
-                col='g-'
-                # Kinetic Energy
-                plt.figure(0)
-                plt.plot(x, ek, col, label=r'$We=%s'%We)
-                plt.legend(loc='best')
-                plt.xlabel('time(s)')
-                plt.ylabel('E_k')
-                plt.savefig("Compressible Viscoelastic Flow Results/Stability-Convergence/KineticEnergyTf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-                # Elastic Energy
-                plt.figure(1)
-                plt.plot(x, ee, col, label=r'$We=%s'%We)
-                plt.legend(loc='best')
-                plt.xlabel('time(s)')
-                plt.ylabel('E_e')
-                plt.savefig("Compressible Viscoelastic Flow Results/Stability-Convergence/ElasticEnergyTf="+str(Tf)+"b="+str(betav)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-                plt.clf()"""
-
-                #Plot Kinetic and elasic Energies for different Weissenberg numbers at Re FIXED 
-            """if j==5 or j==3 or j==1:
-                # Kinetic Energy
-                plt.figure(0)
-                plt.plot(x1, ek1, 'r-', label=r'$We=0.1$')
-                plt.plot(x2, ek2, 'b-', label=r'$We=0.2$')
-                plt.plot(x3, ek3, 'c-', label=r'$We=0.3$')
-                plt.plot(x4, ek4, 'm-', label=r'$We=0.4$')
-                plt.plot(x5, ek5, 'g-', label=r'$We=0.5$')
-                plt.legend(loc='best')
-                plt.xlabel('time(s)')
-                plt.ylabel('$E_{kinetic}$')
-                plt.savefig("plots/energy/KineticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"mesh="+str(mm)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-                plt.clf()
-                # Elastic Energy
-                plt.figure(1)
-                plt.plot(x1, ee1, 'r-', label=r'$We=0.1$')
-                plt.plot(x2, ee2, 'b-', label=r'$We=0.2$')
-                plt.plot(x3, ee3, 'c-', label=r'$We=0.3$')
-                plt.plot(x4, ee4, 'm-', label=r'$We=0.4$')
-                plt.plot(x5, ee5, 'g-', label=r'$We=0.5$')
-                plt.legend(loc='best')
-                plt.xlabel('time(s)')
-                plt.ylabel('$E_{elastic}$')
-                plt.savefig("plots/energy/ElasticEnergyRe="+str(Re*conv)+"Tf="+str(Tf)+"b="+str(betav)+"mesh="+str(mm)+"Ma="+str(Ma)+"dt="+str(dt)+".png")
-                plt.clf()"""
 
 
             # Plot First Normal Stress Difference
             tau_xx=project(tau1[0,0],Q)
             mplot(tau_xx)
             plt.colorbar()
-            plt.savefig("plots/flow/tau_xxRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.savefig("plots/compressible/flow/tau_xxRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"mesh="+str(mm)+"dt="+str(dt)+"t="+str(t)+".png")
             plt.clf() 
             tau_xy=project(tau1[1,0],Q)
             mplot(tau_xy)
             plt.colorbar()
-            plt.savefig("plots/flow/tau_xyRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.savefig("plots/compressible/flow/tau_xyRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"mesh="+str(mm)+"dt="+str(dt)+"t="+str(t)+".png")
             plt.clf() 
             tau_yy=project(tau1[1,1],Q)
             mplot(tau_yy)
             plt.colorbar()
-            plt.savefig("plots/flow/tau_yyRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.savefig("plots/compressible/flow/tau_yyRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"mesh="+str(mm)+"dt="+str(dt)+"t="+str(t)+".png")
             plt.clf() 
             divu = project(div(u1),Q)
             mplot(divu)
             plt.colorbar()
-            plt.savefig("plots/flow/div_uRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.savefig("plots/compressible/flow/div_uRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"mesh="+str(mm)+"dt="+str(dt)+"t="+str(t)+".png")
             plt.clf()
 
             # Plot Velocity Components
             ux=project(u1[0],Q)
             mplot(ux)
             plt.colorbar()
-            plt.savefig("plots/flow/u_xRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.savefig("plots/compressible/flow/u_xRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"mesh="+str(mm)+"dt="+str(dt)+"t="+str(t)+".png")
             plt.clf()
             uy=project(u1[1],Q)
             mplot(uy)
             plt.colorbar()
-            plt.savefig("plots/flow/u_yRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.savefig("plots/compressible/flow/u_yRe="+str(Re*conv)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"mesh="+str(mm)+"dt="+str(dt)+"t="+str(t)+".png")
             plt.clf()
 
 
@@ -918,15 +784,15 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             #p1=project(p1,Q)
             mplot(rho1)
             plt.colorbar()
-            plt.savefig("plots/flow/DensityRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.savefig("plots/compressible/flow/DensityRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"mesh="+str(mm)+"dt="+str(dt)+"t="+str(t)+".png")
             plt.clf() 
             mplot(p1)
             plt.colorbar()
-            plt.savefig("plots/flow/PressureRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.savefig("plots/compressible/flow/PressureRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"mesh="+str(mm)+"dt="+str(dt)+"t="+str(t)+".png")
             plt.clf()
             mplot(T1)
             plt.colorbar()
-            plt.savefig("plots/flow/TemperatureRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.savefig("plots/compressible/flow/TemperatureRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"mesh="+str(mm)+"dt="+str(dt)+"t="+str(t)+".png")
             plt.clf()
 
             #Plot Contours USING MATPLOTLIB
@@ -961,31 +827,25 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             dd = sci.griddata(points, rhovals, (XX, YY), method='linear')
             dd = np.reshape(dd, (len(xx), len(yy))) # Reshape to 2D array
             normstress = sci.griddata(points, tauxxvals, (XX, YY), method='linear')
-            normstress = np.reshape(dd, (len(xx), len(yy))) # Reshape to 2D array
+            normstress = np.reshape(normstress, (len(xx), len(yy))) # Reshape to 2D array
 
 
             plt.contour(XX, YY, dd, 25)
             plt.title('Density Contours')   # DENSITY CONTOUR PLOT
             plt.colorbar() 
-            plt.savefig("plots/flow/DensityContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.savefig("plots/compressible/flow/DensityContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"mesh="+str(mm)+"dt="+str(dt)+"t="+str(t)+".png")
             plt.clf()
 
             plt.contour(XX, YY, pp, 25)
             plt.title('Pressure Contours')   # PRESSURE CONTOUR PLOT
             plt.colorbar() 
-            plt.savefig("plots/flow/PressureContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.savefig("plots/compressible/flow/PressureContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"mesh="+str(mm)+"dt="+str(dt)+"t="+str(t)+".png")
             plt.clf()
-
-            #plt.contour(XX, YY, TT, 20) 
-            #plt.title('Temperature Contours')   # TEMPERATURE CONTOUR PLOT
-            #plt.colorbar() 
-            #plt.savefig("plots/flow/TemperatureContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
-            #plt.clf()
 
             plt.contour(XX, YY, normstress, 20) 
             plt.title('Stress Contours')   # NORMAL STRESS CONTOUR PLOT
             plt.colorbar() 
-            plt.savefig("plots/flow/StressContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")
+            plt.savefig("plots/compressible/flow/StressContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"mesh="+str(mm)+"dt="+str(dt)+"t="+str(t)+".png")
             plt.clf()
 
 
@@ -1019,12 +879,19 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                                                                     # arrow size
             plt.colorbar()                                          # add colour bar on the right
             plt.title('Lid Driven Cavity Flow')
-            plt.savefig("plots/flow/VelocityContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"t="+str(t)+".png")   
+            plt.savefig("plots/compressible/flow/VelocityContoursRe="+str(Re)+"We="+str(We)+"b="+str(betav)+"Ma="+str(Ma)+"mesh="+str(mm)+"dt="+str(dt)+"t="+str(t)+".png")   
             plt.clf()                                             # display the plot
 
 
             plt.close()
 
+            if j==loopend:
+                if jjj==3:
+                    quit()
+                jjj+=1
+                update_progress(flow_description+str(jjj), 1)
+                j = 0
+                mesh_refinement = False
 
             if dt < tol:
                 j=loopend+1
@@ -1033,4 +900,4 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("flow-parameters.csv", mesh_resolution=40, simulation_time=20.0, mesh_refinement=False)
+    main("flow-parameters.csv", mesh_resolution=40, simulation_time=10.0, mesh_refinement=False)

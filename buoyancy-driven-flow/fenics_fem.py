@@ -273,6 +273,7 @@ def DGP_Mesh(mm, B, L):
     base_mesh= RectangleMesh(Point(x0,y0), Point(x1, y1), nx, ny) # Rectangular Mesh
 
     mesh1 = base_mesh
+    #return mesh1
 
 
     # MESH CONSTRUCTION CODE
@@ -449,15 +450,10 @@ def function_spaces(mesh, order):
 
     V_s = VectorElement("CG", mesh.ufl_cell(), order)       # Velocity Elements
     V_d = VectorElement("DG", mesh.ufl_cell(), order-1)
-    V_se = VectorElement("Bubble", mesh.ufl_cell(),  order+1)
-    
     Z_c = VectorElement("CG", mesh.ufl_cell(),  order, 3)     # Stress Elements
     Z_s = VectorElement("DG", mesh.ufl_cell(),  order-1, 3)
-    Z_se = VectorElement("Bubble", mesh.ufl_cell(),  order+1, 3)
     Z_d = VectorElement("DG", mesh.ufl_cell(),  order-2, 3)
-
     Q_s = FiniteElement("CG", mesh.ufl_cell(), order-1)   # Pressure/Density Elements
-    Q_p = FiniteElement("Bubble", mesh.ufl_cell(), order+1, 3)
 
     # Function spaces
     W = FunctionSpace(mesh,V_s*Z_d)             # F.E. Spaces 

@@ -26,7 +26,7 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
     T_h = 350
     Bi = 0.0+DOLFIN_EPS
     Di = 0.005                         #Diffusion Number
-    al = 2.0
+    al = 1.0
 
     c1 = 0.05
     c2 = 0.001
@@ -35,10 +35,10 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 
     # SET LOOPING PARAMETER
-    loopend = 6
+    loopend = 3
     j = 0                            
     err_count = 0
-    jjj = 1
+    jjj = 0
 
 
       
@@ -48,14 +48,25 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
         # DEFINE THE COMPUTATION GRID
         # Choose Mesh to Use
-
+        if j==1:
+            mesh_resolution = 40
+            label_1 = "M1"#mesh="+str(mesh_resolution)
+        elif j==2:
+            mesh_resolution = 60
+            label_2 = "M2"#mesh="+str(mesh_resolution)
+        elif j==3:
+            mesh_resolution = 80  # <--- 65
+            label_3 = "M3"#mesh="+str(mesh_resolution)
+        #elif j==4:
+        #    mesh_resolution = 70  # <--- 65
+        #    label_4 = "M4"#mesh="+str(mesh_resolutio
         mesh = DGP_Mesh(mesh_resolution, B, L)
-        #gdim = mesh.geometry().dim() # Mesh Geometry
 
         mplot(mesh)
-        plt.savefig("fine_skewed_grid.png")
+        plt.savefig("skewed_grid-"+str(mesh_resolution)+".png")
         plt.clf()
         plt.close()
+
 
         # Discretization  parameters
         order = 2
@@ -189,33 +200,39 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         data_tag = "incomp-flow-"
 
         # Set parameters for primary loop ------------------------------------------------        
-        if j==1:
-            We = float(we_row[1])
-            Ra = float(ra_row[3])
-            label_1 = "Ra="+str(Ra)+",We="+str(We)
-        elif j==2:
-            We = float(we_row[4])
-            Ra = float(ra_row[3])
-            label_2 = "Ra="+str(Ra)+",We="+str(We)
-        elif j==3:
-            We = float(we_row[5])
-            Ra = float(ra_row[3])
-            label_3 = "Ra="+str(Ra)+",We="+str(We)
-        elif j==4:
-            We = float(we_row[1])
-            Ra = float(ra_row[5])
-            label_4 = "Ra="+str(Ra)+",We="+str(We)
-        elif j==5:
-            We = float(we_row[4])
-            Ra = float(ra_row[5])
-            label_5 = "Ra="+str(Ra)+",We="+str(We)
-        elif j==6:
-            We = float(we_row[5])
-            Ra = float(ra_row[5])
-            label_6 = "Ra="+str(Ra)+",We="+str(We)
+        #if j==1:
+        #    We = float(we_row[1])
+        #    Ra = float(ra_row[3])
+        #    label_1 = "Ra="+str(Ra)+",We="+str(We)
+        #elif j==2:
+        #    We = float(we_row[4])
+        #    Ra = float(ra_row[3])
+        #    label_2 = "Ra="+str(Ra)+",We="+str(We)
+        #elif j==3:
+        #    We = float(we_row[5])
+        #    Ra = float(ra_row[3])
+        #    label_3 = "Ra="+str(Ra)+",We="+str(We)
+        #elif j==4:
+        #    We = float(we_row[1])
+        #    Ra = float(ra_row[5])
+        #    label_4 = "Ra="+str(Ra)+",We="+str(We)
+        #elif j==5:
+        #    We = float(we_row[4])
+        #    Ra = float(ra_row[5])
+        #    label_5 = "Ra="+str(Ra)+",We="+str(We)
+        #elif j==6:
+        #    We = float(we_row[5])
+        #    Ra = float(ra_row[5])
+        #    label_6 = "Ra="+str(Ra)+",We="+str(We)
 
+        We = float(we_row[1])
+        Ra = float(ra_row[2]) 
         
 
+        h_min = mesh.hmin()
+        dt = h_min**2
+        dt = float(np.format_float_positional(dt, precision=1, unique=False, fractional=False, trim='k'))
+        dt = 0.001
 
         print('############# TIME SCALE ############')
         print('Timestep size (s):', dt)
@@ -232,7 +249,8 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         print('Viscous Heating Number:', Vh)
 
         Np= len(p0.vector().get_local())
-        Nv= len(w0.vector().get_local())   
+        (u0, _) = w0.split() 
+        Nv= len(u0.vector().get_local())  
         Ntau= len(tau0_vec.vector().get_local())
         dof= 3*Nv+2*Ntau+Np
         mm = int(np.sqrt(Np))
@@ -245,11 +263,11 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
         print('Degrees of Freedom = %d ' % dof)
         print('Number of Cells:', mesh.num_cells())
         print('Number of Vertices:', mesh.num_vertices())
+        print('Minimum cell diameter:', mesh.hmin())
+        print('Maximum cell diameter:', mesh.hmax())
         print('############# Stabilisation Parameters ############')
         print('DEVSS Parameter:', th)
 
-
-        
         # Initial Conformation Tensor
         I_vec = Expression(('1.0','0.0','1.0'), degree=2)
         initial_guess_conform = project(I_vec, Zc)
@@ -550,8 +568,9 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             save_data_array(nus_array, jjj, j, data_tag)
             mplot(kapp)
             plt.colorbar()
-            plt.savefig("plots/kappa.png")
+            plt.savefig("plots/kappa-"+"mesh="+str(mm)+".png")
             plt.clf()
+            plt.close()
 
             u1 = project(u1, V)
             psi = stream_function(u1)
@@ -565,10 +584,6 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             max_loc = max_location(gamma, mesh)
             with open("results/Incompressible-Shear-Rate.txt", "a") as text_file:
                 text_file.write("Re="+str(Ra)+", We="+str(We)+", t="+str(t)+"----- shear_rate="+str(gamma_max)+"---"+str(max_loc)+'\n')
-
-            """# Data on Kinetic/Elastic Energies
-            with open("Incompressible ConformEnergy.txt", "a") as text_file:
-                text_file.write("Ra="+str(Ra)+", We="+str(We)+", t="+str(t)+", E_k="+str(E_k)+", E_e="+str(E_e)+'\n')"""
 
             # Max steady-state flow speed data
             u_abs = magnitude(u1)
@@ -585,10 +600,11 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
 
 
             peakEk = max(ek_array)
-            with open("results/IncompressibleConformEnergy.txt", "a") as text_file:
-                text_file.write("Ra="+str(Ra)+", We="+str(We)+"-------peak Kinetic Energy: "+str(peakEk)+'\n')
+            # Data on Kinetic/Elastic Energies
+            with open("results/IncompressibleEnergy.txt", "a") as text_file:
+                text_file.write("Ra="+str(Ra)+", We="+str(We)+", t="+str(t)+", E_k="+str(E_k)+", E_e="+str(E_e)+", max(E_k)="+str(peakEk)+'\n')
 
-            plt.close()
+
 
                 #Plot Kinetic and elasic Energies for different Weissenberg numbers at Re=0 (METHOD 2)
             if j==loopend:
@@ -598,20 +614,20 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 nus2 = load_data_array(jjj, 2, data_tag)
                 x3, ek3, ee3 = load_energy_arrays(jjj, 3, data_tag)
                 nus3 = load_data_array(jjj, 3, data_tag)
-                x4, ek4, ee4 = load_energy_arrays(jjj, 4, data_tag)
-                nus4 = load_data_array(jjj, 4, data_tag)
-                x5, ek5, ee5 = load_energy_arrays(jjj, 5, data_tag)
-                nus5 = load_data_array(jjj, 5, data_tag)
-                x6, ek6, ee6 = load_energy_arrays(jjj, 6, data_tag)
-                nus6 = load_data_array(jjj, 6, data_tag)
+                #x4, ek4, ee4 = load_energy_arrays(jjj, 4, data_tag)
+                #nus4 = load_data_array(jjj, 4, data_tag)
+                #x5, ek5, ee5 = load_energy_arrays(jjj, 5, data_tag)
+                #nus5 = load_data_array(jjj, 5, data_tag)
+                #x6, ek6, ee6 = load_energy_arrays(jjj, 6, data_tag)
+                #nus6 = load_data_array(jjj, 6, data_tag)
                 # Kinetic Energy
                 plt.figure(0)
                 plt.plot(x1, ek1, 'r-', label=r'%s' % label_1)
-                plt.plot(x2, ek2, 'b-', label=r'%s' % label_2)
+                plt.plot(x2, ek2, 'b--', label=r'%s' % label_2)
                 plt.plot(x3, ek3, 'c-', label=r'%s' % label_3)
-                plt.plot(x4, ek4, 'm-', label=r'%s' % label_4)
-                plt.plot(x5, ek5, 'r--', label=r'%s' % label_5)
-                plt.plot(x6, ek6, 'b--', label=r'%s' % label_6)
+                #plt.plot(x4, ek4, 'm-', label=r'%s' % label_4)
+                #plt.plot(x5, ek5, 'r--', label=r'%s' % label_5)
+                #plt.plot(x6, ek6, 'b--', label=r'%s' % label_6)
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
                 plt.ylabel('$E_k$')
@@ -620,11 +636,11 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 # Elastic Energy
                 plt.figure(1)
                 plt.plot(x1, ee1, 'r-', label=r'%s' % label_1)
-                plt.plot(x2, ee2, 'b-', label=r'%s' % label_2)
+                plt.plot(x2, ee2, 'b--', label=r'%s' % label_2)
                 plt.plot(x3, ee3, 'c-', label=r'%s' % label_3)
-                plt.plot(x4, ee4, 'm-', label=r'%s' % label_4)
-                plt.plot(x5, ee5, 'r--', label=r'%s' % label_5)
-                plt.plot(x6, ee6, 'b--', label=r'%s' % label_6)
+                #plt.plot(x4, ee4, 'm-', label=r'%s' % label_4)
+                #plt.plot(x5, ee5, 'r--', label=r'%s' % label_5)
+                #plt.plot(x6, ee6, 'b--', label=r'%s' % label_6)
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
                 plt.ylabel('$E_e$')
@@ -633,17 +649,17 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 # Kinetic and Elastic Energy
                 plt.figure(2)
                 plt.plot(x1, ek1, 'r-', label=r'%s' % label_1)
-                plt.plot(x2, ek2, 'b-', label=r'%s' % label_2)
+                plt.plot(x2, ek2, 'b--', label=r'%s' % label_2)
                 plt.plot(x3, ek3, 'c-', label=r'%s' % label_3)
-                plt.plot(x4, ek4, 'm-', label=r'%s' % label_4)
-                plt.plot(x5, ek5, 'r--', label=r'%s' % label_5)
-                plt.plot(x6, ek6, 'b--', label=r'%s' % label_6)
+                #plt.plot(x4, ek4, 'm-', label=r'%s' % label_4)
+                #plt.plot(x5, ek5, 'r--', label=r'%s' % label_5)
+                #plt.plot(x6, ek6, 'b--', label=r'%s' % label_6)
                 plt.plot(x1, ee1, 'r-', label=r'%s' % label_1)
-                plt.plot(x2, ee2, 'b-', label=r'%s' % label_2)
+                plt.plot(x2, ee2, 'b--', label=r'%s' % label_2)
                 plt.plot(x3, ee3, 'c-', label=r'%s' % label_3)
-                plt.plot(x4, ee4, 'm-', label=r'%s' % label_4)
-                plt.plot(x5, ee5, 'r--', label=r'%s' % label_5)
-                plt.plot(x6, ee6, 'b--', label=r'%s' % label_6)
+                #plt.plot(x4, ee4, 'm-', label=r'%s' % label_4)
+                #plt.plot(x5, ee5, 'r--', label=r'%s' % label_5)
+                #plt.plot(x6, ee6, 'b--', label=r'%s' % label_6)
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
                 plt.ylabel('$E_e$')
@@ -652,10 +668,10 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
                 # Nusslet Number
                 plt.figure(2)
                 plt.plot(x1, nus1, 'r-', label=r'%s' % label_1)
-                plt.plot(x2, nus2, 'b-', label=r'%s' % label_2)
+                plt.plot(x2, nus2, 'b--', label=r'%s' % label_2)
                 plt.plot(x3, nus3, 'c-', label=r'%s' % label_3)
-                plt.plot(x4, nus4, 'm-', label=r'%s' % label_4)
-                plt.plot(x5, nus5, 'r--', label=r'%s' % label_5)
+                #plt.plot(x4, nus4, 'm-', label=r'%s' % label_4)
+                #plt.plot(x5, nus5, 'r--', label=r'%s' % label_5)
                 #plt.plot(x6, nus6, 'b--', label=r'%s' % label_6)
                 plt.legend(loc='best')
                 plt.xlabel('$t$')
@@ -851,16 +867,16 @@ def main(input_csv,mesh_resolution,simulation_time, mesh_refinement):
             Tf=T_f    
 
             if j==loopend:
+                if jjj==1:
+                    quit()
                 jjj+=1
                 update_progress(flow_description+str(jjj), 1)
                 j = 0
                 mesh_refinement = False
 
-            if jjj==2:
-                quit()
        
 
 
 if __name__ == "__main__":
     # Execute simulations loop with parameters from "parameters.csv"
-    main("flow-parameters.csv", mesh_resolution=50, simulation_time=10, mesh_refinement=False)
+    main("flow-parameters.csv", mesh_resolution=50, simulation_time=15, mesh_refinement=False)
