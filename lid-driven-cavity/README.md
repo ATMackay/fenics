@@ -1,6 +1,5 @@
 # Visoelastic Flows in the Unit Square: Lid Driven Cavity Flow - Alex Mackay 2021
 
-## TODO
 
 Python modules for computing viscoelastic lid-driven cavity flow in the unit square [0,1]x[0,1].
 

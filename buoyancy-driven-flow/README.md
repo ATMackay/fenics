@@ -1,7 +1,5 @@
 # Visoelastic Flows in the Unit Square: Bouyancy Driven Flow - Alex Mackay 2021
 
-## TODO
-
 Python modules for computing nonisothermal viscoelastic flow in the unit square [0,1]x[0,1].
 
 ## Install FEniCS (Ubuntu)
